@@ -10,6 +10,7 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.ramiroqpaz.provazo",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -25,6 +26,13 @@
       "expo-sqlite",
       "expo-router",
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "fdcf04ac-545e-4ca1-a79f-a0383c129286"
+      }
+    },
+    "owner": "ratimoi"
   }
 }
