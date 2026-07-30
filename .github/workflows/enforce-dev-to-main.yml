@@ -1,0 +1,17 @@
+name: Enforce dev → main
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, edited]
+
+jobs:
+  check-source-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Garantir que o PR para main vem da dev
+        run: |
+          if [ "${{ github.head_ref }}" != "dev" ]; then
+            echo "PRs para 'main' só podem vir da branch 'dev' (esta veio de '${{ github.head_ref }}')."
+            exit 1
+          fi
