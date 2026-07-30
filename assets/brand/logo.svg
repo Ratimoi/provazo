@@ -1,0 +1,13 @@
+<svg viewBox="0 0 560 160" xmlns="http://www.w3.org/2000/svg">
+  <!-- Ícone: barra/timeline com pontos coloridos -->
+  <g transform="translate(20, 40)">
+    <rect x="0" y="30" width="120" height="20" rx="10" fill="#E4E4E7"/>
+    <rect x="0" y="30" width="120" height="20" rx="10" fill="#4F46E5" opacity="0.08"/>
+    <circle cx="18" cy="40" r="11" fill="#3B82F6"/>
+    <circle cx="52" cy="40" r="11" fill="#EF4444"/>
+    <circle cx="86" cy="40" r="11" fill="#F59E0B"/>
+    <circle cx="112" cy="40" r="11" fill="#8B5CF6"/>
+  </g>
+  <!-- Wordmark -->
+  <text x="165" y="105" font-family="'Space Grotesk', 'Segoe UI', sans-serif" font-weight="700" font-size="64" fill="#18181B">provazo</text>
+</svg>
