@@ -10,6 +10,7 @@ import {
 
 import type { Materia } from '../../domain/materias';
 import type { NovaAvaliacao } from '../../domain/avaliacoes';
+import { colors, font, radii, spacing } from '../../theme/tokens';
 
 const REGEX_DATA = /^\d{4}-\d{2}-\d{2}$/;
 const REGEX_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -249,26 +250,29 @@ export function AvaliacaoForm({
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
-    gap: 8,
+    padding: spacing.lg,
+    gap: spacing.xs,
     paddingBottom: 48,
   },
   rotulo: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#71717A',
-    marginTop: 12,
-    marginBottom: 6,
+    fontFamily: font.bodySemibold,
+    fontSize: 12.5,
+    color: colors.inkSoft,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#E4E4E7',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    borderColor: colors.line,
+    borderRadius: radii.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 2,
+    fontFamily: font.body,
     fontSize: 16,
-    color: '#18181B',
-    backgroundColor: '#FFFFFF',
+    color: colors.ink,
+    backgroundColor: colors.surface,
   },
   textoMultilinha: {
     minHeight: 80,
@@ -276,50 +280,51 @@ const styles = StyleSheet.create({
   },
   linha: {
     flexDirection: 'row',
-    gap: 12,
+    gap: spacing.md,
   },
   metade: {
     flex: 1,
   },
   chips: {
     flexDirection: 'row',
-    gap: 8,
+    gap: spacing.sm,
   },
   chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.full,
     borderWidth: 1,
-    borderColor: '#E4E4E7',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
   },
   chipAtivoNeutro: {
-    backgroundColor: '#4F46E5',
-    borderColor: '#4F46E5',
+    backgroundColor: colors.brand,
+    borderColor: colors.brand,
   },
   chipTexto: {
+    fontFamily: font.bodySemibold,
     fontSize: 14,
-    fontWeight: '600',
-    color: '#18181B',
+    color: colors.ink,
   },
   chipTextoAtivo: {
-    color: '#FFFFFF',
+    color: colors.surface,
   },
   erro: {
-    color: '#EF4444',
+    fontFamily: font.bodyMedium,
+    color: colors.danger,
     fontSize: 14,
-    marginTop: 12,
+    marginTop: spacing.md,
   },
   botaoSalvar: {
-    backgroundColor: '#4F46E5',
-    borderRadius: 12,
-    paddingVertical: 14,
+    backgroundColor: colors.brand,
+    borderRadius: radii.md,
+    paddingVertical: spacing.md + 2,
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: spacing.xl,
   },
   botaoSalvarTexto: {
-    color: '#FFFFFF',
+    fontFamily: font.bodySemibold,
+    color: colors.surface,
     fontSize: 16,
-    fontWeight: '700',
   },
 });

@@ -12,6 +12,7 @@ import {
 import { useMateriasPorSemestre } from '../../../src/hooks/useMaterias';
 import { avaliacoesQueryKey } from '../../../src/hooks/useAvaliacoes';
 import { mediasQueryKey } from '../../../src/hooks/useMediasPorMateria';
+import { colors, font, spacing } from '../../../src/theme/tokens';
 
 export default function DetalheAvaliacaoScreen() {
   const { id, semestreId } = useLocalSearchParams<{
@@ -94,21 +95,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
+    backgroundColor: colors.bg,
   },
   vazioTexto: {
+    fontFamily: font.body,
     fontSize: 15,
-    color: '#71717A',
+    color: colors.inkSoft,
     textAlign: 'center',
   },
   botaoExcluir: {
-    marginHorizontal: 16,
-    marginBottom: 24,
-    paddingVertical: 12,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.xl,
+    paddingVertical: spacing.md,
     alignItems: 'center',
   },
   botaoExcluirTexto: {
-    color: '#EF4444',
+    fontFamily: font.bodySemibold,
+    color: colors.danger,
     fontSize: 15,
-    fontWeight: '600',
   },
 });

@@ -1,16 +1,11 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { AvaliacaoComMateria } from '../../domain/avaliacoes';
-import { CORES_TIPO } from '../../domain/cores';
+import { colors, font, radii, shadow, spacing } from '../../theme/tokens';
 
 const ROTULO_TIPO: Record<AvaliacaoComMateria['tipo'], string> = {
   prova: 'Prova',
   trabalho: 'Trabalho',
-};
-
-const COR_TIPO: Record<AvaliacaoComMateria['tipo'], string> = {
-  prova: CORES_TIPO.prova,
-  trabalho: CORES_TIPO.trabalho,
 };
 
 function formatarData(data: string) {
@@ -25,37 +20,49 @@ export function AvaliacaoCard({
   avaliacao: AvaliacaoComMateria;
   onPress: () => void;
 }) {
-  const corTipo = COR_TIPO[avaliacao.tipo];
+  const corTipo = colors.tipo[avaliacao.tipo];
 
   return (
-    <Pressable style={styles.card} onPress={onPress}>
-      <View style={[styles.dot, { backgroundColor: avaliacao.materiaCorHex }]} />
-      <View style={styles.conteudo}>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+    >
+      <View
+        style={[styles.faixa, { backgroundColor: avaliacao.materiaCorHex }]}
+      />
+      <View style={styles.corpo}>
         <View style={styles.linhaTopo}>
           <Text style={styles.materia}>{avaliacao.materiaNome}</Text>
-          <View style={[styles.badge, { backgroundColor: `${corTipo}1A` }]}>
+          <View style={[styles.badge, { backgroundColor: `${corTipo}17` }]}>
             <Text style={[styles.badgeTexto, { color: corTipo }]}>
               {ROTULO_TIPO[avaliacao.tipo]}
             </Text>
           </View>
         </View>
-        <Text style={styles.titulo}>{avaliacao.titulo}</Text>
-        <View style={styles.linhaInfo}>
-          <Text style={styles.info}>
-            {formatarData(avaliacao.data)} · {avaliacao.hora}
-          </Text>
-          <Text style={styles.info}>peso {avaliacao.peso}</Text>
+        <View style={styles.linhaPrincipal}>
+          <View style={styles.conteudo}>
+            <Text style={styles.titulo} numberOfLines={1}>
+              {avaliacao.titulo}
+            </Text>
+            <View style={styles.linhaInfo}>
+              <Text style={styles.info}>
+                {formatarData(avaliacao.data)} · {avaliacao.hora}
+              </Text>
+              <View style={styles.pontoSeparador} />
+              <Text style={styles.info}>peso {avaliacao.peso}</Text>
+            </View>
+          </View>
+          <View style={styles.notaContainer}>
+            {avaliacao.nota != null ? (
+              <Text style={styles.nota}>
+                {avaliacao.nota}
+                <Text style={styles.notaMaxima}>/{avaliacao.notaMaxima}</Text>
+              </Text>
+            ) : (
+              <Text style={styles.notaPendente}>—</Text>
+            )}
+          </View>
         </View>
-      </View>
-      <View style={styles.notaContainer}>
-        {avaliacao.nota != null ? (
-          <Text style={styles.nota}>
-            {avaliacao.nota}
-            <Text style={styles.notaMaxima}>/{avaliacao.notaMaxima}</Text>
-          </Text>
-        ) : (
-          <Text style={styles.notaPendente}>—</Text>
-        )}
       </View>
     </Pressable>
   );
@@ -64,22 +71,21 @@ export function AvaliacaoCard({
 const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E4E4E7',
-    padding: 14,
-    gap: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    overflow: 'hidden',
+    ...shadow.card,
   },
-  dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+  cardPressed: {
+    opacity: 0.85,
   },
-  conteudo: {
+  faixa: {
+    width: 4,
+  },
+  corpo: {
     flex: 1,
-    gap: 4,
+    padding: spacing.md,
+    gap: spacing.xs,
   },
   linhaTopo: {
     flexDirection: 'row',
@@ -87,50 +93,71 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   materia: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#71717A',
+    fontFamily: font.bodySemibold,
+    fontSize: 11.5,
+    color: colors.inkSoft,
     textTransform: 'uppercase',
-    letterSpacing: 0.4,
+    letterSpacing: 0.5,
   },
   badge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 2,
-    borderRadius: 999,
+    borderRadius: radii.full,
   },
   badgeTexto: {
+    fontFamily: font.bodySemibold,
     fontSize: 11,
-    fontWeight: '700',
+  },
+  linhaPrincipal: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  conteudo: {
+    flex: 1,
+    gap: 3,
   },
   titulo: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#18181B',
+    fontFamily: font.displayMedium,
+    fontSize: 17,
+    color: colors.ink,
   },
   linhaInfo: {
     flexDirection: 'row',
-    gap: 12,
+    alignItems: 'center',
+    gap: spacing.sm,
   },
   info: {
+    fontFamily: font.body,
     fontSize: 13,
-    color: '#71717A',
+    color: colors.inkSoft,
+    fontVariant: ['tabular-nums'],
+  },
+  pontoSeparador: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: colors.inkFaint,
   },
   notaContainer: {
     minWidth: 44,
     alignItems: 'flex-end',
   },
   nota: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#18181B',
+    fontFamily: font.display,
+    fontSize: 20,
+    color: colors.ink,
+    fontVariant: ['tabular-nums'],
   },
   notaMaxima: {
+    fontFamily: font.body,
     fontSize: 12,
-    fontWeight: '500',
-    color: '#71717A',
+    color: colors.inkSoft,
   },
   notaPendente: {
-    fontSize: 18,
-    color: '#E4E4E7',
+    fontFamily: font.display,
+    fontSize: 20,
+    color: colors.line,
   },
 });

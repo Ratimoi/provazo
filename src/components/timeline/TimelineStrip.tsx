@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { minutosDoDia, type Compromisso } from '../../domain/timeline';
+import { colors, font, radii, shadow, spacing } from '../../theme/tokens';
 import { TimelineBlock } from './TimelineBlock';
 
 const MINUTOS_DIA = 24 * 60;
@@ -56,23 +57,23 @@ export function TimelineStrip({
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
   },
   trilha: {
-    height: 56,
-    borderRadius: 14,
-    backgroundColor: '#F0F0F3',
-    borderWidth: 1,
-    borderColor: '#E4E4E7',
+    height: 60,
+    borderRadius: radii.lg,
+    backgroundColor: colors.surface,
+    ...shadow.card,
   },
   marcadores: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 6,
+    marginTop: spacing.sm,
   },
   marcador: {
+    fontFamily: font.bodyMedium,
     fontSize: 11,
-    color: '#71717A',
+    color: colors.inkFaint,
     fontVariant: ['tabular-nums'],
   },
 });

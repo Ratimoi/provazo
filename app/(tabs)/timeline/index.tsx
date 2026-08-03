@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { router } from 'expo-router';
@@ -9,6 +10,7 @@ import type { Compromisso } from '../../../src/domain/timeline';
 import { getMateria } from '../../../src/domain/materias';
 import { useCompromissosDoDia } from '../../../src/hooks/useCompromissosDoDia';
 import { useDiaSelecionado } from '../../../src/hooks/useDiaSelecionado';
+import { colors, font, radii, shadow, spacing } from '../../../src/theme/tokens';
 
 export default function TimelineScreen() {
   const { data, dataIso, ehHoje, irParaAnterior, irParaProximo, irParaHoje } =
@@ -40,8 +42,8 @@ export default function TimelineScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.seletor}>
-          <Pressable onPress={irParaAnterior} hitSlop={12}>
-            <Text style={styles.seta}>‹</Text>
+          <Pressable onPress={irParaAnterior} hitSlop={10}>
+            <Ionicons name="chevron-back" size={20} color={colors.brand} />
           </Pressable>
           <Pressable onPress={irParaHoje} style={styles.dataContainer}>
             <Text style={styles.data}>
@@ -49,12 +51,15 @@ export default function TimelineScreen() {
             </Text>
             {!ehHoje && <Text style={styles.voltarHoje}>voltar pra hoje</Text>}
           </Pressable>
-          <Pressable onPress={irParaProximo} hitSlop={12}>
-            <Text style={styles.seta}>›</Text>
+          <Pressable onPress={irParaProximo} hitSlop={10}>
+            <Ionicons name="chevron-forward" size={20} color={colors.brand} />
           </Pressable>
         </View>
         <Pressable
-          style={styles.botaoNovo}
+          style={({ pressed }) => [
+            styles.botaoNovo,
+            pressed && styles.botaoPressed,
+          ]}
           onPress={() =>
             router.push({
               pathname: '/timeline/evento/novo',
@@ -62,7 +67,7 @@ export default function TimelineScreen() {
             })
           }
         >
-          <Text style={styles.botaoNovoTexto}>+ Compromisso</Text>
+          <Ionicons name="add" size={18} color={colors.surface} />
         </Pressable>
       </View>
 
@@ -73,6 +78,9 @@ export default function TimelineScreen() {
 
       {compromissos.length === 0 ? (
         <View style={styles.vazio}>
+          <View style={styles.vazioIconContainer}>
+            <Ionicons name="cafe-outline" size={26} color={colors.brand} />
+          </View>
           <Text style={styles.vazioTexto}>Nada marcado para esse dia.</Text>
         </View>
       ) : (
@@ -86,7 +94,7 @@ export default function TimelineScreen() {
               onPress={() => abrirCompromisso(item)}
             />
           )}
-          ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+          ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
         />
       )}
     </View>
@@ -96,56 +104,51 @@ export default function TimelineScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
-    paddingTop: 16,
-    gap: 16,
+    backgroundColor: colors.bg,
+    paddingTop: spacing.lg,
+    gap: spacing.lg,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    gap: 12,
+    paddingHorizontal: spacing.lg,
+    gap: spacing.md,
   },
   seletor: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.sm,
     flex: 1,
-  },
-  seta: {
-    fontSize: 22,
-    color: '#4F46E5',
-    fontWeight: '700',
-    paddingHorizontal: 4,
   },
   dataContainer: {
     flex: 1,
   },
   data: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#18181B',
+    fontFamily: font.display,
+    fontSize: 17,
+    color: colors.ink,
     textTransform: 'capitalize',
   },
   voltarHoje: {
+    fontFamily: font.bodySemibold,
     fontSize: 12,
-    color: '#4F46E5',
-    fontWeight: '600',
+    color: colors.brand,
   },
   botaoNovo: {
-    backgroundColor: '#4F46E5',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
+    width: 40,
+    height: 40,
+    borderRadius: radii.full,
+    backgroundColor: colors.brand,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadow.floating,
   },
-  botaoNovoTexto: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
+  botaoPressed: {
+    opacity: 0.85,
   },
   lista: {
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
     paddingBottom: 32,
   },
   vazio: {
@@ -153,10 +156,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 32,
+    gap: spacing.xs,
+  },
+  vazioIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: radii.full,
+    backgroundColor: colors.brandSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
   },
   vazioTexto: {
+    fontFamily: font.body,
     fontSize: 14,
-    color: '#71717A',
+    color: colors.inkSoft,
     textAlign: 'center',
   },
 });

@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet } from 'react-native';
 
 import type { Compromisso } from '../../domain/timeline';
+import { radii } from '../../theme/tokens';
 
 export function TimelineBlock({
   compromisso,
@@ -34,7 +35,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     bottom: 8,
-    borderRadius: 8,
-    opacity: 0.92,
+    borderRadius: radii.sm,
   },
 });
