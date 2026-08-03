@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useMemo } from 'react';
 import {
@@ -15,6 +16,7 @@ import { useAvaliacoesPorSemestre } from '../../../src/hooks/useAvaliacoes';
 import { useMateriasPorSemestre } from '../../../src/hooks/useMaterias';
 import { useMediasPorMateria } from '../../../src/hooks/useMediasPorMateria';
 import { useSemestreSelecionado } from '../../../src/hooks/useSemestreSelecionado';
+import { colors, font, radii, shadow, spacing } from '../../../src/theme/tokens';
 
 function agruparPorMateria(avaliacoes: AvaliacaoComMateria[]) {
   const grupos = new Map<string, AvaliacaoComMateria[]>();
@@ -42,19 +44,29 @@ export default function ProvasTrabalhosScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View style={styles.seletor}>
-          <Pressable onPress={irParaAnterior} hitSlop={12}>
-            <Text style={styles.seta}>‹</Text>
-          </Pressable>
-          <Text style={styles.periodo}>
-            {selecionado.anoValor} · {selecionado.numero}º semestre
-          </Text>
-          <Pressable onPress={irParaProximo} hitSlop={12}>
-            <Text style={styles.seta}>›</Text>
-          </Pressable>
+        <View>
+          <Text style={styles.tituloPagina}>Provas e Trabalhos</Text>
+          <View style={styles.seletor}>
+            <Pressable onPress={irParaAnterior} hitSlop={10}>
+              <Ionicons name="chevron-back" size={18} color={colors.brand} />
+            </Pressable>
+            <Text style={styles.periodo}>
+              {selecionado.anoValor} · {selecionado.numero}º semestre
+            </Text>
+            <Pressable onPress={irParaProximo} hitSlop={10}>
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color={colors.brand}
+              />
+            </Pressable>
+          </View>
         </View>
         <Pressable
-          style={styles.botaoNovo}
+          style={({ pressed }) => [
+            styles.botaoNovo,
+            pressed && styles.botaoPressed,
+          ]}
           onPress={() =>
             router.push({
               pathname: '/provas-trabalhos/nova',
@@ -62,7 +74,8 @@ export default function ProvasTrabalhosScreen() {
             })
           }
         >
-          <Text style={styles.botaoNovoTexto}>+ Avaliação</Text>
+          <Ionicons name="add" size={18} color={colors.surface} />
+          <Text style={styles.botaoNovoTexto}>Avaliação</Text>
         </Pressable>
       </View>
 
@@ -70,13 +83,19 @@ export default function ProvasTrabalhosScreen() {
 
       {materias.length === 0 ? (
         <View style={styles.vazio}>
+          <View style={styles.vazioIconContainer}>
+            <Ionicons name="school-outline" size={28} color={colors.brand} />
+          </View>
           <Text style={styles.vazioTitulo}>Nenhuma matéria ainda</Text>
           <Text style={styles.vazioTexto}>
             Crie a primeira matéria deste semestre pra começar a lançar provas
             e trabalhos.
           </Text>
           <Pressable
-            style={styles.botaoVazio}
+            style={({ pressed }) => [
+              styles.botaoVazio,
+              pressed && styles.botaoPressed,
+            ]}
             onPress={() =>
               router.push({
                 pathname: '/provas-trabalhos/nova-materia',
@@ -89,12 +108,17 @@ export default function ProvasTrabalhosScreen() {
         </View>
       ) : avaliacoes.length === 0 ? (
         <View style={styles.vazio}>
+          <View style={styles.vazioIconContainer}>
+            <Ionicons
+              name="document-text-outline"
+              size={28}
+              color={colors.brand}
+            />
+          </View>
           <Text style={styles.vazioTitulo}>
             Nenhuma prova ou trabalho por aqui ainda
           </Text>
-          <Text style={styles.vazioTexto}>
-            Que tal adicionar o primeiro?
-          </Text>
+          <Text style={styles.vazioTexto}>Que tal adicionar o primeiro?</Text>
         </View>
       ) : (
         <SectionList
@@ -110,13 +134,18 @@ export default function ProvasTrabalhosScreen() {
               onPress={() =>
                 router.push({
                   pathname: '/provas-trabalhos/[id]',
-                  params: { id: String(item.id), semestreId: String(semestre.id) },
+                  params: {
+                    id: String(item.id),
+                    semestreId: String(semestre.id),
+                  },
                 })
               }
             />
           )}
-          ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
-          SectionSeparatorComponent={() => <View style={{ height: 18 }} />}
+          ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
+          SectionSeparatorComponent={() => (
+            <View style={{ height: spacing.lg }} />
+          )}
         />
       )}
     </View>
@@ -126,83 +155,102 @@ export default function ProvasTrabalhosScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
-    paddingTop: 16,
-    gap: 16,
+    backgroundColor: colors.bg,
+    paddingTop: spacing.lg,
+    gap: spacing.lg,
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
+    gap: spacing.md,
+  },
+  tituloPagina: {
+    fontFamily: font.display,
+    fontSize: 24,
+    color: colors.ink,
+    marginBottom: spacing.xs,
   },
   seletor: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-  },
-  seta: {
-    fontSize: 22,
-    color: '#4F46E5',
-    fontWeight: '700',
-    paddingHorizontal: 4,
+    gap: spacing.sm,
   },
   periodo: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#18181B',
+    fontFamily: font.bodySemibold,
+    fontSize: 14,
+    color: colors.inkSoft,
   },
   botaoNovo: {
-    backgroundColor: '#4F46E5',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.brand,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 2,
+    borderRadius: radii.full,
+    ...shadow.floating,
+  },
+  botaoPressed: {
+    opacity: 0.85,
   },
   botaoNovoTexto: {
-    color: '#FFFFFF',
+    fontFamily: font.bodySemibold,
+    color: colors.surface,
     fontSize: 14,
-    fontWeight: '700',
   },
   lista: {
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
     paddingBottom: 32,
   },
   secaoTitulo: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#71717A',
+    fontFamily: font.bodySemibold,
+    fontSize: 12.5,
+    color: colors.inkSoft,
     textTransform: 'uppercase',
-    letterSpacing: 0.4,
-    marginBottom: 8,
+    letterSpacing: 0.5,
+    marginBottom: spacing.sm,
   },
   vazio: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 32,
-    gap: 8,
+    gap: spacing.xs,
+  },
+  vazioIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: radii.full,
+    backgroundColor: colors.brandSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
   },
   vazioTitulo: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#18181B',
+    fontFamily: font.displayMedium,
+    fontSize: 18,
+    color: colors.ink,
     textAlign: 'center',
   },
   vazioTexto: {
+    fontFamily: font.body,
     fontSize: 14,
-    color: '#71717A',
+    color: colors.inkSoft,
     textAlign: 'center',
   },
   botaoVazio: {
-    backgroundColor: '#4F46E5',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 12,
-    marginTop: 12,
+    backgroundColor: colors.brand,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    borderRadius: radii.md,
+    marginTop: spacing.md,
+    ...shadow.floating,
   },
   botaoVazioTexto: {
-    color: '#FFFFFF',
+    fontFamily: font.bodySemibold,
+    color: colors.surface,
     fontSize: 15,
-    fontWeight: '700',
   },
 });

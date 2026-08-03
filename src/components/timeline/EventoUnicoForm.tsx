@@ -11,6 +11,7 @@ import {
 import { CORES_TIPO } from '../../domain/cores';
 import type { NovoEventoUnico } from '../../domain/eventosUnicos';
 import { PALETA_MATERIAS } from '../../domain/materias';
+import { colors, font, radii, spacing } from '../../theme/tokens';
 
 const REGEX_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -142,30 +143,33 @@ export function EventoUnicoForm({
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
-    gap: 8,
+    padding: spacing.lg,
+    gap: spacing.xs,
     paddingBottom: 48,
   },
   rotulo: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#71717A',
-    marginTop: 12,
-    marginBottom: 6,
+    fontFamily: font.bodySemibold,
+    fontSize: 12.5,
+    color: colors.inkSoft,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#E4E4E7',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    borderColor: colors.line,
+    borderRadius: radii.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 2,
+    fontFamily: font.body,
     fontSize: 16,
-    color: '#18181B',
-    backgroundColor: '#FFFFFF',
+    color: colors.ink,
+    backgroundColor: colors.surface,
   },
   linha: {
     flexDirection: 'row',
-    gap: 12,
+    gap: spacing.md,
   },
   metade: {
     flex: 1,
@@ -173,7 +177,7 @@ const styles = StyleSheet.create({
   cores: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: spacing.sm + 2,
   },
   corSwatch: {
     width: 36,
@@ -183,23 +187,24 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   corSwatchSelecionada: {
-    borderColor: '#18181B',
+    borderColor: colors.ink,
   },
   erro: {
-    color: '#EF4444',
+    fontFamily: font.bodyMedium,
+    color: colors.danger,
     fontSize: 14,
-    marginTop: 12,
+    marginTop: spacing.md,
   },
   botaoSalvar: {
-    backgroundColor: '#4F46E5',
-    borderRadius: 12,
-    paddingVertical: 14,
+    backgroundColor: colors.brand,
+    borderRadius: radii.md,
+    paddingVertical: spacing.md + 2,
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: spacing.xl,
   },
   botaoSalvarTexto: {
-    color: '#FFFFFF',
+    fontFamily: font.bodySemibold,
+    color: colors.surface,
     fontSize: 16,
-    fontWeight: '700',
   },
 });

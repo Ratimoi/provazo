@@ -1,6 +1,7 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import type { MediaPorMateria } from '../../domain/medias';
+import { colors, font, radii, shadow, spacing } from '../../theme/tokens';
 
 export function MediasResumo({ medias }: { medias: MediaPorMateria[] }) {
   if (medias.length === 0) return null;
@@ -30,23 +31,22 @@ export function MediasResumo({ medias }: { medias: MediaPorMateria[] }) {
 
 const styles = StyleSheet.create({
   container: {
-    gap: 10,
-    paddingHorizontal: 16,
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E4E4E7',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    minWidth: 120,
-    gap: 6,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    minWidth: 124,
+    gap: spacing.xs,
+    ...shadow.card,
   },
   linhaTopo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: spacing.xs,
   },
   dot: {
     width: 8,
@@ -54,14 +54,15 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   nome: {
+    fontFamily: font.bodySemibold,
     fontSize: 12,
-    fontWeight: '600',
-    color: '#71717A',
+    color: colors.inkSoft,
     flexShrink: 1,
   },
   media: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#18181B',
+    fontFamily: font.display,
+    fontSize: 24,
+    color: colors.ink,
+    fontVariant: ['tabular-nums'],
   },
 });

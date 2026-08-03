@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { Compromisso } from '../../domain/timeline';
+import { colors, font, radii, shadow, spacing } from '../../theme/tokens';
 
 const ROTULO_TIPO: Record<Compromisso['tipo'], string> = {
   aula: 'Aula',
@@ -17,9 +18,12 @@ export function CompromissoListItem({
   onPress: () => void;
 }) {
   return (
-    <Pressable style={styles.card} onPress={onPress}>
-      <View style={[styles.dot, { backgroundColor: compromisso.corHex }]} />
-      <View style={styles.conteudo}>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+    >
+      <View style={[styles.faixa, { backgroundColor: compromisso.corHex }]} />
+      <View style={styles.corpo}>
         <Text style={styles.titulo}>{compromisso.titulo}</Text>
         <Text style={styles.info}>
           {ROTULO_TIPO[compromisso.tipo]}
@@ -37,36 +41,40 @@ export function CompromissoListItem({
 const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E4E4E7',
-    padding: 14,
-    gap: 12,
+    alignItems: 'stretch',
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    overflow: 'hidden',
+    ...shadow.card,
   },
-  dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+  cardPressed: {
+    opacity: 0.85,
   },
-  conteudo: {
+  faixa: {
+    width: 4,
+  },
+  corpo: {
     flex: 1,
-    gap: 2,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    gap: 3,
   },
   titulo: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#18181B',
+    fontFamily: font.displayMedium,
+    fontSize: 16,
+    color: colors.ink,
   },
   info: {
+    fontFamily: font.body,
     fontSize: 13,
-    color: '#71717A',
+    color: colors.inkSoft,
   },
   horario: {
+    fontFamily: font.bodySemibold,
     fontSize: 13,
-    fontWeight: '600',
-    color: '#18181B',
+    color: colors.ink,
     fontVariant: ['tabular-nums'],
+    alignSelf: 'center',
+    paddingRight: spacing.md,
   },
 });

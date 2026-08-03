@@ -7,6 +7,7 @@ import { createAvaliacao, NovaAvaliacao } from '../../../src/domain/avaliacoes';
 import { useMateriasPorSemestre } from '../../../src/hooks/useMaterias';
 import { avaliacoesQueryKey } from '../../../src/hooks/useAvaliacoes';
 import { mediasQueryKey } from '../../../src/hooks/useMediasPorMateria';
+import { colors, font } from '../../../src/theme/tokens';
 
 export default function NovaAvaliacaoScreen() {
   const { semestreId } = useLocalSearchParams<{ semestreId: string }>();
@@ -51,10 +52,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
+    backgroundColor: colors.bg,
   },
   vazioTexto: {
+    fontFamily: font.body,
     fontSize: 15,
-    color: '#71717A',
+    color: colors.inkSoft,
     textAlign: 'center',
   },
 });
