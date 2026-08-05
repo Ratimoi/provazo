@@ -1,13 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useMemo } from 'react';
-import {
-  Pressable,
-  SectionList,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AvaliacaoCard } from '../../../src/components/avaliacoes/AvaliacaoCard';
 import { MediasResumo } from '../../../src/components/avaliacoes/MediasResumo';
@@ -42,7 +37,7 @@ export default function ProvasTrabalhosScreen() {
   const secoes = useMemo(() => agruparPorMateria(avaliacoes), [avaliacoes]);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <View>
           <Text style={styles.tituloPagina}>Provas e Trabalhos</Text>
@@ -148,7 +143,7 @@ export default function ProvasTrabalhosScreen() {
           )}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 

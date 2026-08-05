@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AvaliacaoForm } from '../../../src/components/avaliacoes/AvaliacaoForm';
 import { createAvaliacao, NovaAvaliacao } from '../../../src/domain/avaliacoes';
@@ -29,20 +30,22 @@ export default function NovaAvaliacaoScreen() {
 
   if (materias.length === 0) {
     return (
-      <View style={styles.vazio}>
+      <SafeAreaView style={styles.vazio} edges={['top']}>
         <Text style={styles.vazioTexto}>
           Crie uma matéria antes de adicionar uma avaliação.
         </Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <AvaliacaoForm
-      materias={materias}
-      rotuloBotao="Criar avaliação"
-      aoSalvar={(dados) => mutacao.mutate(dados)}
-    />
+    <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+      <AvaliacaoForm
+        materias={materias}
+        rotuloBotao="Criar avaliação"
+        aoSalvar={(dados) => mutacao.mutate(dados)}
+      />
+    </SafeAreaView>
   );
 }
 

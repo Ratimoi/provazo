@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { router } from 'expo-router';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CompromissoListItem } from '../../../src/components/timeline/CompromissoListItem';
 import { TimelineStrip } from '../../../src/components/timeline/TimelineStrip';
@@ -39,7 +40,7 @@ export default function TimelineScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <View style={styles.seletor}>
           <Pressable onPress={irParaAnterior} hitSlop={10}>
@@ -97,7 +98,7 @@ export default function TimelineScreen() {
           ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 

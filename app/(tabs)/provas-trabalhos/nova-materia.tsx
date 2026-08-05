@@ -9,6 +9,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { createMateria, PALETA_MATERIAS } from '../../../src/domain/materias';
 import { materiasQueryKey } from '../../../src/hooks/useMaterias';
@@ -42,45 +43,47 @@ export default function NovaMateriaScreen() {
   });
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.titulo}>Nova matéria</Text>
+    <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.titulo}>Nova matéria</Text>
 
-      <Text style={styles.rotulo}>Nome</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Ex: Cálculo 2"
-        value={nome}
-        onChangeText={setNome}
-        autoFocus
-      />
+        <Text style={styles.rotulo}>Nome</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Ex: Cálculo 2"
+          value={nome}
+          onChangeText={setNome}
+          autoFocus
+        />
 
-      <Text style={styles.rotulo}>Cor</Text>
-      <View style={styles.cores}>
-        {PALETA_MATERIAS.map((cor) => (
-          <Pressable
-            key={cor}
-            onPress={() => setCorSelecionada(cor)}
-            style={[
-              styles.corSwatch,
-              { backgroundColor: cor },
-              corSelecionada === cor && styles.corSwatchSelecionada,
-            ]}
-          />
-        ))}
-      </View>
+        <Text style={styles.rotulo}>Cor</Text>
+        <View style={styles.cores}>
+          {PALETA_MATERIAS.map((cor) => (
+            <Pressable
+              key={cor}
+              onPress={() => setCorSelecionada(cor)}
+              style={[
+                styles.corSwatch,
+                { backgroundColor: cor },
+                corSelecionada === cor && styles.corSwatchSelecionada,
+              ]}
+            />
+          ))}
+        </View>
 
-      {erro && <Text style={styles.erro}>{erro}</Text>}
+        {erro && <Text style={styles.erro}>{erro}</Text>}
 
-      <Pressable
-        style={styles.botaoSalvar}
-        onPress={() => mutacao.mutate()}
-        disabled={mutacao.isPending}
-      >
-        <Text style={styles.botaoSalvarTexto}>
-          {mutacao.isPending ? 'Salvando…' : 'Criar matéria'}
-        </Text>
-      </Pressable>
-    </ScrollView>
+        <Pressable
+          style={styles.botaoSalvar}
+          onPress={() => mutacao.mutate()}
+          disabled={mutacao.isPending}
+        >
+          <Text style={styles.botaoSalvarTexto}>
+            {mutacao.isPending ? 'Salvando…' : 'Criar matéria'}
+          </Text>
+        </Pressable>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 

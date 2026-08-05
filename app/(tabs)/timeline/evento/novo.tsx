@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EventoUnicoForm } from '../../../../src/components/timeline/EventoUnicoForm';
 import { createEventoUnico, NovoEventoUnico } from '../../../../src/domain/eventosUnicos';
@@ -21,10 +22,12 @@ export default function NovoEventoScreen() {
   });
 
   return (
-    <EventoUnicoForm
-      dataInicial={data}
-      rotuloBotao="Criar compromisso"
-      aoSalvar={(dados) => mutacao.mutate(dados)}
-    />
+    <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+      <EventoUnicoForm
+        dataInicial={data}
+        rotuloBotao="Criar compromisso"
+        aoSalvar={(dados) => mutacao.mutate(dados)}
+      />
+    </SafeAreaView>
   );
 }
