@@ -481,6 +481,7 @@ const styles = StyleSheet.create({
   },
   chips: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
     gap: spacing.sm,
     paddingHorizontal: spacing.lg,
   },
