@@ -14,8 +14,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AvaliacaoCard } from '../../../src/components/avaliacoes/AvaliacaoCard';
-import { MediasResumo } from '../../../src/components/avaliacoes/MediasResumo';
 import { NovaAulaModal } from '../../../src/components/aulas/NovaAulaModal';
+import { MateriaChip } from '../../../src/components/materias/MateriaChip';
 import { NovaMateriaModal } from '../../../src/components/materias/NovaMateriaModal';
 import { TarefasSection } from '../../../src/components/tarefas/TarefasSection';
 import type { AvaliacaoComMateria } from '../../../src/domain/avaliacoes';
@@ -26,16 +26,19 @@ import {
   formatarDiasSemana,
   NovaAula,
 } from '../../../src/domain/eventosRecorrentes';
-import { createMateria } from '../../../src/domain/materias';
+import { createMateria, deleteMateria, Materia } from '../../../src/domain/materias';
 import {
   createTarefa,
   deleteTarefa,
   toggleTarefaConcluida,
 } from '../../../src/domain/tarefas';
 import { aulasQueryKey, useAulasPorSemestre } from '../../../src/hooks/useAulas';
-import { useAvaliacoesPorSemestre } from '../../../src/hooks/useAvaliacoes';
+import {
+  avaliacoesQueryKey,
+  useAvaliacoesPorSemestre,
+} from '../../../src/hooks/useAvaliacoes';
 import { materiasQueryKey, useMateriasPorSemestre } from '../../../src/hooks/useMaterias';
-import { useMediasPorMateria } from '../../../src/hooks/useMediasPorMateria';
+import { mediasQueryKey, useMediasPorMateria } from '../../../src/hooks/useMediasPorMateria';
 import { useSemestreSelecionado } from '../../../src/hooks/useSemestreSelecionado';
 import { TAREFAS_QUERY_KEY, useTarefas } from '../../../src/hooks/useTarefas';
 import { colors, font, radii, shadow, spacing } from '../../../src/theme/tokens';
@@ -53,6 +56,16 @@ function agruparPorMateria(avaliacoes: AvaliacaoComMateria[]) {
   }));
 }
 
+function mensagemAmigavel(erro: unknown): string | undefined {
+  if (!(erro instanceof Error)) return undefined;
+  if (erro.message.includes('UNIQUE constraint failed')) {
+    return erro.message.includes('materia')
+      ? 'Essa matéria já existe nesse semestre.'
+      : 'Essa aula já está cadastrada pra esse dia e horário.';
+  }
+  return erro.message;
+}
+
 export default function ProvasTrabalhosScreen() {
   const { selecionado, semestre, irParaAnterior, irParaProximo } =
     useSemestreSelecionado();
@@ -66,17 +79,59 @@ export default function ProvasTrabalhosScreen() {
 
   const [modalMateriaAberto, setModalMateriaAberto] = useState(false);
   const [modalAulaAberto, setModalAulaAberto] = useState(false);
+  const [materiaIdParaAula, setMateriaIdParaAula] = useState<number | null>(
+    null,
+  );
+  const [materiaFiltroId, setMateriaFiltroId] = useState<number | null>(null);
 
-  const secoes = useMemo(() => agruparPorMateria(avaliacoes), [avaliacoes]);
+  const mediasPorMateria = useMemo(
+    () => new Map(medias.map((m) => [m.materiaId, m])),
+    [medias],
+  );
+  const aulasPorMateria = useMemo(() => {
+    const mapa = new Map<number, Aula[]>();
+    for (const aula of aulas) {
+      const lista = mapa.get(aula.materiaId) ?? [];
+      lista.push(aula);
+      mapa.set(aula.materiaId, lista);
+    }
+    return mapa;
+  }, [aulas]);
+
+  const avaliacoesFiltradas = useMemo(
+    () =>
+      materiaFiltroId
+        ? avaliacoes.filter((av) => av.materiaId === materiaFiltroId)
+        : avaliacoes,
+    [avaliacoes, materiaFiltroId],
+  );
+  const secoes = useMemo(
+    () => agruparPorMateria(avaliacoesFiltradas),
+    [avaliacoesFiltradas],
+  );
+
+  function invalidarTudoDoSemestre() {
+    queryClient.invalidateQueries({ queryKey: materiasQueryKey(semestre.id) });
+    queryClient.invalidateQueries({
+      queryKey: avaliacoesQueryKey(semestre.id),
+    });
+    queryClient.invalidateQueries({ queryKey: mediasQueryKey(semestre.id) });
+    queryClient.invalidateQueries({ queryKey: aulasQueryKey(semestre.id) });
+  }
 
   const mutacaoMateria = useMutation({
     mutationFn: ({ nome, corHex }: { nome: string; corHex: string | null }) => {
-      if (nome.trim().length === 0) {
+      const nomeLimpo = nome.trim();
+      if (nomeLimpo.length === 0) {
         throw new Error('Dê um nome pra matéria.');
       }
-      return Promise.resolve(
-        createMateria(semestre.id, nome.trim(), corHex ?? undefined),
-      );
+      try {
+        return Promise.resolve(
+          createMateria(semestre.id, nomeLimpo, corHex ?? undefined),
+        );
+      } catch (e) {
+        throw new Error(mensagemAmigavel(e) ?? 'Não foi possível salvar.');
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -86,8 +141,22 @@ export default function ProvasTrabalhosScreen() {
     },
   });
 
+  const mutacaoMateriaExcluir = useMutation({
+    mutationFn: (id: number) => Promise.resolve(deleteMateria(id)),
+    onSuccess: (_resultado, id) => {
+      invalidarTudoDoSemestre();
+      setMateriaFiltroId((atual) => (atual === id ? null : atual));
+    },
+  });
+
   const mutacaoAula = useMutation({
-    mutationFn: (dados: NovaAula) => Promise.resolve(createAula(dados)),
+    mutationFn: (dados: NovaAula) => {
+      try {
+        return Promise.resolve(createAula(dados));
+      } catch (e) {
+        throw new Error(mensagemAmigavel(e) ?? 'Não foi possível salvar.');
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: aulasQueryKey(semestre.id) });
       setModalAulaAberto(false);
@@ -118,19 +187,59 @@ export default function ProvasTrabalhosScreen() {
       queryClient.invalidateQueries({ queryKey: TAREFAS_QUERY_KEY }),
   });
 
-  function confirmarExclusaoAula(aula: Aula) {
+  function abrirModalMateria() {
+    mutacaoMateria.reset();
+    setModalMateriaAberto(true);
+  }
+
+  function abrirModalAula(materiaId: number | null) {
+    mutacaoAula.reset();
+    setMateriaIdParaAula(materiaId);
+    setModalAulaAberto(true);
+  }
+
+  function confirmarExclusaoMateria(materia: Materia) {
     Alert.alert(
-      aula.materiaNome,
-      `${formatarDiasSemana(aula.diasSemana)} · ${aula.horaInicio}${aula.horaFim ? `–${aula.horaFim}` : ''}`,
+      `Excluir ${materia.nome}?`,
+      'Isso apaga também todas as avaliações e aulas fixas dessa matéria. Não dá pra desfazer.',
       [
-        { text: 'Fechar', style: 'cancel' },
+        { text: 'Cancelar', style: 'cancel' },
         {
-          text: 'Excluir aula',
+          text: 'Excluir',
           style: 'destructive',
-          onPress: () => mutacaoAulaExcluir.mutate(aula.id),
+          onPress: () => mutacaoMateriaExcluir.mutate(materia.id),
         },
       ],
     );
+  }
+
+  function handleLongPressMateria(materia: Materia, aulasDaMateria: Aula[]) {
+    if (aulasDaMateria.length > 0) {
+      Alert.alert(materia.nome, undefined, [
+        {
+          text: 'Remover aula fixa',
+          style: 'destructive',
+          onPress: () =>
+            aulasDaMateria.forEach((a) => mutacaoAulaExcluir.mutate(a.id)),
+        },
+        {
+          text: 'Excluir matéria',
+          style: 'destructive',
+          onPress: () => confirmarExclusaoMateria(materia),
+        },
+        { text: 'Cancelar', style: 'cancel' },
+      ]);
+    } else {
+      Alert.alert(materia.nome, undefined, [
+        { text: 'Adicionar aula', onPress: () => abrirModalAula(materia.id) },
+        {
+          text: 'Excluir matéria',
+          style: 'destructive',
+          onPress: () => confirmarExclusaoMateria(materia),
+        },
+        { text: 'Cancelar', style: 'cancel' },
+      ]);
+    }
   }
 
   const cabecalho = (
@@ -167,69 +276,46 @@ export default function ProvasTrabalhosScreen() {
         </Pressable>
       </View>
 
-      <MediasResumo medias={medias} />
-
       <View style={styles.secaoChips}>
-        <Text style={styles.secaoTitulo}>Matérias</Text>
+        <View style={styles.secaoCabecalho}>
+          <Text style={styles.secaoTitulo}>Matérias</Text>
+          <Pressable onPress={abrirModalMateria} hitSlop={8}>
+            <Ionicons name="add-circle-outline" size={20} color={colors.brand} />
+          </Pressable>
+        </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View style={styles.chips}>
-            {materias.map((materia) => (
-              <View key={materia.id} style={styles.chipMateria}>
-                <View
-                  style={[styles.dotChip, { backgroundColor: materia.corHex }]}
+            {materias.map((materia) => {
+              const aulasDaMateria = aulasPorMateria.get(materia.id) ?? [];
+              const aulaResumo =
+                aulasDaMateria.length > 0
+                  ? aulasDaMateria
+                      .map(
+                        (a) => `${formatarDiasSemana(a.diasSemana)} ${a.horaInicio}`,
+                      )
+                      .join(' · ')
+                  : null;
+              return (
+                <MateriaChip
+                  key={materia.id}
+                  materia={materia}
+                  media={mediasPorMateria.get(materia.id)?.media ?? null}
+                  aulaResumo={aulaResumo}
+                  ativo={materiaFiltroId === materia.id}
+                  onPress={() =>
+                    setMateriaFiltroId((atual) =>
+                      atual === materia.id ? null : materia.id,
+                    )
+                  }
+                  onLongPress={() =>
+                    handleLongPressMateria(materia, aulasDaMateria)
+                  }
                 />
-                <Text style={styles.chipMateriaTexto}>{materia.nome}</Text>
-              </View>
-            ))}
-            <Pressable
-              style={styles.chipAdicionar}
-              onPress={() => setModalMateriaAberto(true)}
-            >
-              <Ionicons name="add" size={16} color={colors.brand} />
-            </Pressable>
+              );
+            })}
           </View>
         </ScrollView>
       </View>
-
-      {materias.length > 0 && (
-        <View style={styles.secaoChips}>
-          <Text style={styles.secaoTitulo}>Aulas fixas</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={styles.chips}>
-              {aulas.map((aula) => (
-                <Pressable
-                  key={aula.id}
-                  style={styles.chipAula}
-                  onPress={() => confirmarExclusaoAula(aula)}
-                >
-                  <View
-                    style={[
-                      styles.dotChip,
-                      { backgroundColor: aula.materiaCorHex },
-                    ]}
-                  />
-                  <Text style={styles.chipMateriaTexto}>
-                    {aula.materiaNome} · {formatarDiasSemana(aula.diasSemana)} ·{' '}
-                    {aula.horaInicio}
-                  </Text>
-                </Pressable>
-              ))}
-              <Pressable
-                style={styles.chipAdicionar}
-                onPress={() => setModalAulaAberto(true)}
-              >
-                <Ionicons name="add" size={16} color={colors.brand} />
-              </Pressable>
-            </View>
-          </ScrollView>
-        </View>
-      )}
-
-      {(materias.length === 0 || avaliacoes.length > 0) && (
-        <Text style={[styles.secaoTitulo, styles.listaTitulo]}>
-          Provas e trabalhos
-        </Text>
-      )}
     </View>
   );
 
@@ -273,9 +359,15 @@ export default function ProvasTrabalhosScreen() {
                 />
               </View>
               <Text style={styles.vazioTitulo}>
-                Nenhuma prova ou trabalho por aqui ainda
+                {materiaFiltroId
+                  ? 'Nada por aqui pra essa matéria'
+                  : 'Nenhuma prova ou trabalho por aqui ainda'}
               </Text>
-              <Text style={styles.vazioTexto}>Que tal adicionar o primeiro?</Text>
+              <Text style={styles.vazioTexto}>
+                {materiaFiltroId
+                  ? 'Toque de novo no chip pra ver todas de novo.'
+                  : 'Que tal adicionar o primeiro?'}
+              </Text>
             </View>
           )
         }
@@ -312,6 +404,7 @@ export default function ProvasTrabalhosScreen() {
       <NovaAulaModal
         visivel={modalAulaAberto}
         materias={materias}
+        materiaIdInicial={materiaIdParaAula}
         salvando={mutacaoAula.isPending}
         erro={mutacaoAula.error?.message}
         aoFechar={() => setModalAulaAberto(false)}
@@ -370,7 +463,14 @@ const styles = StyleSheet.create({
   },
   secaoChips: {
     marginTop: spacing.lg,
+    marginBottom: spacing.md,
     gap: spacing.sm,
+  },
+  secaoCabecalho: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
   },
   secaoTitulo: {
     fontFamily: font.bodySemibold,
@@ -378,60 +478,21 @@ const styles = StyleSheet.create({
     color: colors.inkSoft,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    paddingHorizontal: spacing.lg,
-  },
-  listaTitulo: {
-    marginTop: spacing.lg,
-    marginBottom: spacing.sm,
   },
   chips: {
     flexDirection: 'row',
     gap: spacing.sm,
     paddingHorizontal: spacing.lg,
   },
-  chipMateria: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radii.full,
-    backgroundColor: colors.surface,
-    ...shadow.card,
-  },
-  chipAula: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radii.full,
-    backgroundColor: colors.surface,
-    ...shadow.card,
-  },
-  dotChip: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  chipMateriaTexto: {
-    fontFamily: font.bodySemibold,
-    fontSize: 13,
-    color: colors.ink,
-  },
-  chipAdicionar: {
-    width: 34,
-    height: 34,
-    borderRadius: radii.full,
-    backgroundColor: colors.brandSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   lista: {
     paddingBottom: 48,
   },
   rodape: {
-    marginTop: spacing.xl,
+    marginTop: spacing.lg,
+    marginHorizontal: spacing.lg,
+    backgroundColor: colors.surfaceSunken,
+    borderRadius: radii.lg,
+    padding: spacing.md,
   },
   itemWrapper: {
     paddingHorizontal: spacing.lg,

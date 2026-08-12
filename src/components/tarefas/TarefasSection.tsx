@@ -88,7 +88,6 @@ export function TarefasSection({
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: spacing.lg,
     gap: spacing.sm,
   },
   secaoTitulo: {

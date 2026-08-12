@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Modal,
   Pressable,
@@ -28,6 +28,7 @@ const DIAS = [
 export function NovaAulaModal({
   visivel,
   materias,
+  materiaIdInicial,
   salvando,
   erro,
   aoFechar,
@@ -35,18 +36,33 @@ export function NovaAulaModal({
 }: {
   visivel: boolean;
   materias: Materia[];
+  materiaIdInicial?: number | null;
   salvando?: boolean;
   erro?: string | null;
   aoFechar: () => void;
   aoSalvar: (dados: NovaAula) => void;
 }) {
   const [materiaId, setMateriaId] = useState<number | null>(
-    materias[0]?.id ?? null,
+    materiaIdInicial ?? materias[0]?.id ?? null,
   );
   const [diasSemana, setDiasSemana] = useState<number[]>([]);
   const [horaInicio, setHoraInicio] = useState('');
   const [horaFim, setHoraFim] = useState('');
   const [erroLocal, setErroLocal] = useState<string | null>(null);
+
+  // Toda abertura começa limpa (mesmo motivo do NovaMateriaModal) e já
+  // pré-seleciona a matéria certa quando aberto a partir do toque longo
+  // no chip de uma matéria específica.
+  useEffect(() => {
+    if (visivel) {
+      setMateriaId(materiaIdInicial ?? materias[0]?.id ?? null);
+      setDiasSemana([]);
+      setHoraInicio('');
+      setHoraFim('');
+      setErroLocal(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visivel, materiaIdInicial]);
 
   function alternarDia(dia: number) {
     setDiasSemana((atual) =>
@@ -55,10 +71,6 @@ export function NovaAulaModal({
   }
 
   function handleFechar() {
-    setDiasSemana([]);
-    setHoraInicio('');
-    setHoraFim('');
-    setErroLocal(null);
     aoFechar();
   }
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Modal,
   Pressable,
@@ -28,9 +28,17 @@ export function NovaMateriaModal({
   const [nome, setNome] = useState('');
   const [corSelecionada, setCorSelecionada] = useState<string | null>(null);
 
+  // Toda abertura começa limpa, independente de como a anterior terminou
+  // (sucesso não passa pelo handleFechar, então sem isso os campos ficavam
+  // com o valor do cadastro passado).
+  useEffect(() => {
+    if (visivel) {
+      setNome('');
+      setCorSelecionada(null);
+    }
+  }, [visivel]);
+
   function handleFechar() {
-    setNome('');
-    setCorSelecionada(null);
     aoFechar();
   }
 
