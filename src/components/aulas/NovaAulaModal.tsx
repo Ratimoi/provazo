@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import {
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -8,11 +7,11 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { Materia } from '../../domain/materias';
 import type { NovaAula } from '../../domain/eventosRecorrentes';
 import { colors, font, radii, shadow, spacing } from '../../theme/tokens';
+import { BottomSheetModal } from '../ui/BottomSheetModal';
 
 const REGEX_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
 const DIAS = [
@@ -70,10 +69,6 @@ export function NovaAulaModal({
     );
   }
 
-  function handleFechar() {
-    aoFechar();
-  }
-
   function handleSalvar() {
     const materia = materias.find((m) => m.id === materiaId);
     if (!materia) {
@@ -103,17 +98,15 @@ export function NovaAulaModal({
   }
 
   return (
-    <Modal visible={visivel} animationType="slide" transparent onRequestClose={handleFechar}>
-      <View style={styles.overlay}>
-        <SafeAreaView style={styles.folha} edges={['bottom']}>
-          <View style={styles.cabecalho}>
-            <Text style={styles.titulo}>Nova aula fixa</Text>
-            <Pressable onPress={handleFechar} hitSlop={10}>
-              <Text style={styles.fechar}>Cancelar</Text>
-            </Pressable>
-          </View>
+    <BottomSheetModal visivel={visivel} aoFechar={aoFechar}>
+      <View style={styles.cabecalho}>
+        <Text style={styles.titulo}>Nova aula fixa</Text>
+        <Pressable onPress={aoFechar} hitSlop={10}>
+          <Text style={styles.fechar}>Cancelar</Text>
+        </Pressable>
+      </View>
 
-          <Text style={styles.rotulo}>Matéria</Text>
+      <Text style={styles.rotulo}>Matéria</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={styles.chips}>
               {materias.map((materia) => {
@@ -202,26 +195,12 @@ export function NovaAulaModal({
             <Text style={styles.botaoSalvarTexto}>
               {salvando ? 'Salvando…' : 'Criar aula'}
             </Text>
-          </Pressable>
-        </SafeAreaView>
-      </View>
-    </Modal>
+      </Pressable>
+    </BottomSheetModal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(24,24,27,0.4)',
-    justifyContent: 'flex-end',
-  },
-  folha: {
-    backgroundColor: colors.bg,
-    borderTopLeftRadius: radii.xl,
-    borderTopRightRadius: radii.xl,
-    padding: spacing.lg,
-    gap: spacing.xs,
-  },
   cabecalho: {
     flexDirection: 'row',
     alignItems: 'center',
