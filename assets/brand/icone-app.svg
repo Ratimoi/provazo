@@ -1,5 +1,14 @@
 <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-  <rect width="200" height="200" rx="44" fill="#4F46E5"/>
-  <path d="M 52.7 101.6 L 85.9 134.8 L 148.4 64.5" fill="none" stroke="#FFFFFF" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="153" cy="58.6" r="8.2" fill="#F59E0B"/>
+  <defs>
+    <linearGradient id="terracota" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#E37A47"/>
+      <stop offset="1" stop-color="#96300B"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="200" rx="44" fill="url(#terracota)"/>
+  <g transform="scale(0.1953125)">
+    <path d="M292 224 H732 A26 26 0 0 1 732 276 H704 L566 486 H458 L320 276 H292 A26 26 0 0 1 292 224 Z" fill="#FFFFFF"/>
+    <path d="M292 800 H732 A26 26 0 0 0 732 748 H704 L566 538 H458 L320 748 H292 A26 26 0 0 0 292 800 Z" fill="#FFFFFF"/>
+    <circle cx="512" cy="512" r="16" fill="#FDE1C6"/>
+  </g>
 </svg>

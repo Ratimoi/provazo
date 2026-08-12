@@ -55,7 +55,7 @@ Ambas são gratuitas (Google Fonts / Open Font License) e fáceis de embutir num
 
 Wordmark **"provazo"** em minúsculas, `Space Grotesk Bold`, acompanhado por um ícone inline: uma barra horizontal arredondada com 4 pontos coloridos (azul, vermelho, âmbar, roxo) — a metáfora da timeline do app. Ver `logo.svg` nesta pasta.
 
-**Ícone do app** (launcher/favicon, `icone-app.svg`): um checkmark branco grosso sobre fundo índigo, com um pontinho âmbar na ponta — silhueta única e legível em qualquer tamanho, ao contrário da composição de pontos do logotipo, que só funciona em telas maiores. Representa "prova feita, prazo cumprido".
+**Ícone do app** (launcher/favicon, `icone-app.svg`): uma ampulheta branca sobre um degradê de terracota (`#E37A47` → `#96300B`), com um grão de areia âmbar-claro (`#FDE1C6`) no gargalo — silhueta única e legível em qualquer tamanho. O terracota é usado só aqui, como cor de destaque do ícone; o resto da interface continua no índigo de marca. Representa o "prazo" do nome de forma direta.
 
 ## Tom de voz
 
