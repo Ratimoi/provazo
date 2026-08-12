@@ -1,16 +1,9 @@
 import { useEffect, useState } from 'react';
-import {
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { PALETA_MATERIAS } from '../../domain/materias';
 import { colors, font, radii, shadow, spacing } from '../../theme/tokens';
+import { BottomSheetModal } from '../ui/BottomSheetModal';
 
 export function NovaMateriaModal({
   visivel,
@@ -38,75 +31,55 @@ export function NovaMateriaModal({
     }
   }, [visivel]);
 
-  function handleFechar() {
-    aoFechar();
-  }
-
   return (
-    <Modal visible={visivel} animationType="slide" transparent onRequestClose={handleFechar}>
-      <View style={styles.overlay}>
-        <SafeAreaView style={styles.folha} edges={['bottom']}>
-          <View style={styles.cabecalho}>
-            <Text style={styles.titulo}>Nova matéria</Text>
-            <Pressable onPress={handleFechar} hitSlop={10}>
-              <Text style={styles.fechar}>Cancelar</Text>
-            </Pressable>
-          </View>
-
-          <Text style={styles.rotulo}>Nome</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Ex: Cálculo 2"
-            value={nome}
-            onChangeText={setNome}
-            autoFocus
-          />
-
-          <Text style={styles.rotulo}>Cor</Text>
-          <View style={styles.cores}>
-            {PALETA_MATERIAS.map((cor) => (
-              <Pressable
-                key={cor}
-                onPress={() => setCorSelecionada(cor)}
-                style={[
-                  styles.corSwatch,
-                  { backgroundColor: cor },
-                  corSelecionada === cor && styles.corSwatchSelecionada,
-                ]}
-              />
-            ))}
-          </View>
-
-          {erro && <Text style={styles.erro}>{erro}</Text>}
-
-          <Pressable
-            style={styles.botaoSalvar}
-            onPress={() => aoSalvar(nome, corSelecionada)}
-            disabled={salvando}
-          >
-            <Text style={styles.botaoSalvarTexto}>
-              {salvando ? 'Salvando…' : 'Criar matéria'}
-            </Text>
-          </Pressable>
-        </SafeAreaView>
+    <BottomSheetModal visivel={visivel} aoFechar={aoFechar}>
+      <View style={styles.cabecalho}>
+        <Text style={styles.titulo}>Nova matéria</Text>
+        <Pressable onPress={aoFechar} hitSlop={10}>
+          <Text style={styles.fechar}>Cancelar</Text>
+        </Pressable>
       </View>
-    </Modal>
+
+      <Text style={styles.rotulo}>Nome</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Ex: Cálculo 2"
+        value={nome}
+        onChangeText={setNome}
+        autoFocus
+      />
+
+      <Text style={styles.rotulo}>Cor</Text>
+      <View style={styles.cores}>
+        {PALETA_MATERIAS.map((cor) => (
+          <Pressable
+            key={cor}
+            onPress={() => setCorSelecionada(cor)}
+            style={[
+              styles.corSwatch,
+              { backgroundColor: cor },
+              corSelecionada === cor && styles.corSwatchSelecionada,
+            ]}
+          />
+        ))}
+      </View>
+
+      {erro && <Text style={styles.erro}>{erro}</Text>}
+
+      <Pressable
+        style={styles.botaoSalvar}
+        onPress={() => aoSalvar(nome, corSelecionada)}
+        disabled={salvando}
+      >
+        <Text style={styles.botaoSalvarTexto}>
+          {salvando ? 'Salvando…' : 'Criar matéria'}
+        </Text>
+      </Pressable>
+    </BottomSheetModal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(24,24,27,0.4)',
-    justifyContent: 'flex-end',
-  },
-  folha: {
-    backgroundColor: colors.bg,
-    borderTopLeftRadius: radii.xl,
-    borderTopRightRadius: radii.xl,
-    padding: spacing.lg,
-    gap: spacing.xs,
-  },
   cabecalho: {
     flexDirection: 'row',
     alignItems: 'center',

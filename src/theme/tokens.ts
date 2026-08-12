@@ -67,4 +67,11 @@ export const shadow = {
     shadowOffset: { width: 0, height: 6 },
     elevation: 6,
   },
+  sheet: {
+    shadowColor: '#18181B',
+    shadowOpacity: 0.2,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: -8 },
+    elevation: 16,
+  },
 };

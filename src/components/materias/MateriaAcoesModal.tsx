@@ -1,9 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { Materia } from '../../domain/materias';
 import { colors, font, radii, spacing } from '../../theme/tokens';
+import { BottomSheetModal } from '../ui/BottomSheetModal';
 
 export function MateriaAcoesModal({
   visivel,
@@ -27,53 +27,38 @@ export function MateriaAcoesModal({
   if (!materia) return null;
 
   return (
-    <Modal
-      visible={visivel}
-      animationType="slide"
-      transparent
-      onRequestClose={aoFechar}
-    >
-      <Pressable style={styles.overlay} onPress={aoFechar}>
-        <SafeAreaView style={styles.folha} edges={['bottom']} onStartShouldSetResponder={() => true}>
-          <View style={styles.cabecalho}>
-            <View
-              style={[styles.dot, { backgroundColor: materia.corHex }]}
-            />
-            <Text style={styles.titulo}>{materia.nome}</Text>
-          </View>
+    <BottomSheetModal visivel={visivel} aoFechar={aoFechar}>
+      <View style={styles.cabecalho}>
+        <View style={[styles.dot, { backgroundColor: materia.corHex }]} />
+        <Text style={styles.titulo}>{materia.nome}</Text>
+      </View>
 
-          <Linha
-            icone="create-outline"
-            texto="Editar matéria"
-            onPress={aoEditar}
-          />
-          {temAula ? (
-            <Linha
-              icone="close-circle-outline"
-              texto="Remover aula fixa"
-              destrutivo
-              onPress={aoRemoverAula}
-            />
-          ) : (
-            <Linha
-              icone="time-outline"
-              texto="Adicionar aula"
-              onPress={aoAdicionarAula}
-            />
-          )}
-          <Linha
-            icone="trash-outline"
-            texto="Excluir matéria"
-            destrutivo
-            onPress={aoExcluir}
-          />
+      <Linha icone="create-outline" texto="Editar matéria" onPress={aoEditar} />
+      {temAula ? (
+        <Linha
+          icone="close-circle-outline"
+          texto="Remover aula fixa"
+          destrutivo
+          onPress={aoRemoverAula}
+        />
+      ) : (
+        <Linha
+          icone="time-outline"
+          texto="Adicionar aula"
+          onPress={aoAdicionarAula}
+        />
+      )}
+      <Linha
+        icone="trash-outline"
+        texto="Excluir matéria"
+        destrutivo
+        onPress={aoExcluir}
+      />
 
-          <Pressable style={styles.cancelar} onPress={aoFechar}>
-            <Text style={styles.cancelarTexto}>Cancelar</Text>
-          </Pressable>
-        </SafeAreaView>
+      <Pressable style={styles.cancelar} onPress={aoFechar}>
+        <Text style={styles.cancelarTexto}>Cancelar</Text>
       </Pressable>
-    </Modal>
+    </BottomSheetModal>
   );
 }
 
@@ -101,18 +86,6 @@ function Linha({
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(24,24,27,0.4)',
-    justifyContent: 'flex-end',
-  },
-  folha: {
-    backgroundColor: colors.bg,
-    borderTopLeftRadius: radii.xl,
-    borderTopRightRadius: radii.xl,
-    padding: spacing.lg,
-    gap: spacing.xs,
-  },
   cabecalho: {
     flexDirection: 'row',
     alignItems: 'center',
