@@ -3,7 +3,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
-  Alert,
   Pressable,
   ScrollView,
   SectionList,
@@ -15,9 +14,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AvaliacaoCard } from '../../../src/components/avaliacoes/AvaliacaoCard';
 import { NovaAulaModal } from '../../../src/components/aulas/NovaAulaModal';
+import { EditarMateriaModal } from '../../../src/components/materias/EditarMateriaModal';
+import { MateriaAcoesModal } from '../../../src/components/materias/MateriaAcoesModal';
 import { MateriaChip } from '../../../src/components/materias/MateriaChip';
 import { NovaMateriaModal } from '../../../src/components/materias/NovaMateriaModal';
 import { TarefasSection } from '../../../src/components/tarefas/TarefasSection';
+import { ConfirmModal } from '../../../src/components/ui/ConfirmModal';
 import type { AvaliacaoComMateria } from '../../../src/domain/avaliacoes';
 import {
   Aula,
@@ -26,7 +28,12 @@ import {
   formatarDiasSemana,
   NovaAula,
 } from '../../../src/domain/eventosRecorrentes';
-import { createMateria, deleteMateria, Materia } from '../../../src/domain/materias';
+import {
+  createMateria,
+  deleteMateria,
+  Materia,
+  updateMateria,
+} from '../../../src/domain/materias';
 import {
   createTarefa,
   deleteTarefa,
@@ -83,6 +90,17 @@ export default function ProvasTrabalhosScreen() {
     null,
   );
   const [materiaFiltroId, setMateriaFiltroId] = useState<number | null>(null);
+  const [acoesMateria, setAcoesMateria] = useState<{
+    materia: Materia;
+    aulas: Aula[];
+  } | null>(null);
+  const [materiaEditando, setMateriaEditando] = useState<Materia | null>(null);
+  const [confirmExcluirMateria, setConfirmExcluirMateria] =
+    useState<Materia | null>(null);
+  const [confirmRemoverAula, setConfirmRemoverAula] = useState<{
+    materia: Materia;
+    aulas: Aula[];
+  } | null>(null);
 
   const mediasPorMateria = useMemo(
     () => new Map(medias.map((m) => [m.materiaId, m])),
@@ -138,6 +156,34 @@ export default function ProvasTrabalhosScreen() {
         queryKey: materiasQueryKey(semestre.id),
       });
       setModalMateriaAberto(false);
+    },
+  });
+
+  const mutacaoMateriaEditar = useMutation({
+    mutationFn: ({
+      id,
+      nome,
+      corHex,
+    }: {
+      id: number;
+      nome: string;
+      corHex: string;
+    }) => {
+      const nomeLimpo = nome.trim();
+      if (nomeLimpo.length === 0) {
+        throw new Error('Dê um nome pra matéria.');
+      }
+      try {
+        return Promise.resolve(
+          updateMateria(id, { nome: nomeLimpo, corHex }),
+        );
+      } catch (e) {
+        throw new Error(mensagemAmigavel(e) ?? 'Não foi possível salvar.');
+      }
+    },
+    onSuccess: () => {
+      invalidarTudoDoSemestre();
+      setMateriaEditando(null);
     },
   });
 
@@ -198,48 +244,45 @@ export default function ProvasTrabalhosScreen() {
     setModalAulaAberto(true);
   }
 
-  function confirmarExclusaoMateria(materia: Materia) {
-    Alert.alert(
-      `Excluir ${materia.nome}?`,
-      'Isso apaga também todas as avaliações e aulas fixas dessa matéria. Não dá pra desfazer.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Excluir',
-          style: 'destructive',
-          onPress: () => mutacaoMateriaExcluir.mutate(materia.id),
-        },
-      ],
-    );
+  function handleLongPressMateria(materia: Materia, aulasDaMateria: Aula[]) {
+    setAcoesMateria({ materia, aulas: aulasDaMateria });
   }
 
-  function handleLongPressMateria(materia: Materia, aulasDaMateria: Aula[]) {
-    if (aulasDaMateria.length > 0) {
-      Alert.alert(materia.nome, undefined, [
-        {
-          text: 'Remover aula fixa',
-          style: 'destructive',
-          onPress: () =>
-            aulasDaMateria.forEach((a) => mutacaoAulaExcluir.mutate(a.id)),
-        },
-        {
-          text: 'Excluir matéria',
-          style: 'destructive',
-          onPress: () => confirmarExclusaoMateria(materia),
-        },
-        { text: 'Cancelar', style: 'cancel' },
-      ]);
-    } else {
-      Alert.alert(materia.nome, undefined, [
-        { text: 'Adicionar aula', onPress: () => abrirModalAula(materia.id) },
-        {
-          text: 'Excluir matéria',
-          style: 'destructive',
-          onPress: () => confirmarExclusaoMateria(materia),
-        },
-        { text: 'Cancelar', style: 'cancel' },
-      ]);
-    }
+  function handleEditarDasAcoes() {
+    if (!acoesMateria) return;
+    mutacaoMateriaEditar.reset();
+    setMateriaEditando(acoesMateria.materia);
+    setAcoesMateria(null);
+  }
+
+  function handleAdicionarAulaDasAcoes() {
+    if (!acoesMateria) return;
+    abrirModalAula(acoesMateria.materia.id);
+    setAcoesMateria(null);
+  }
+
+  function handleRemoverAulaDasAcoes() {
+    if (!acoesMateria) return;
+    setConfirmRemoverAula(acoesMateria);
+    setAcoesMateria(null);
+  }
+
+  function handleExcluirDasAcoes() {
+    if (!acoesMateria) return;
+    setConfirmExcluirMateria(acoesMateria.materia);
+    setAcoesMateria(null);
+  }
+
+  function confirmarExclusaoMateria() {
+    if (!confirmExcluirMateria) return;
+    mutacaoMateriaExcluir.mutate(confirmExcluirMateria.id);
+    setConfirmExcluirMateria(null);
+  }
+
+  function confirmarRemocaoAula() {
+    if (!confirmRemoverAula) return;
+    confirmRemoverAula.aulas.forEach((a) => mutacaoAulaExcluir.mutate(a.id));
+    setConfirmRemoverAula(null);
   }
 
   const cabecalho = (
@@ -409,6 +452,49 @@ export default function ProvasTrabalhosScreen() {
         erro={mutacaoAula.error?.message}
         aoFechar={() => setModalAulaAberto(false)}
         aoSalvar={(dados) => mutacaoAula.mutate(dados)}
+      />
+      <MateriaAcoesModal
+        visivel={acoesMateria !== null}
+        materia={acoesMateria?.materia ?? null}
+        temAula={(acoesMateria?.aulas.length ?? 0) > 0}
+        aoFechar={() => setAcoesMateria(null)}
+        aoEditar={handleEditarDasAcoes}
+        aoAdicionarAula={handleAdicionarAulaDasAcoes}
+        aoRemoverAula={handleRemoverAulaDasAcoes}
+        aoExcluir={handleExcluirDasAcoes}
+      />
+      <EditarMateriaModal
+        visivel={materiaEditando !== null}
+        materia={materiaEditando}
+        salvando={mutacaoMateriaEditar.isPending}
+        erro={mutacaoMateriaEditar.error?.message}
+        aoFechar={() => setMateriaEditando(null)}
+        aoSalvar={(nome, corHex) => {
+          if (!materiaEditando) return;
+          mutacaoMateriaEditar.mutate({ id: materiaEditando.id, nome, corHex });
+        }}
+      />
+      <ConfirmModal
+        visivel={confirmExcluirMateria !== null}
+        titulo={`Excluir ${confirmExcluirMateria?.nome ?? ''}?`}
+        mensagem="Isso apaga também todas as avaliações e aulas fixas dessa matéria. Não dá pra desfazer."
+        textoConfirmar="Excluir"
+        destrutivo
+        aoConfirmar={confirmarExclusaoMateria}
+        aoCancelar={() => setConfirmExcluirMateria(null)}
+      />
+      <ConfirmModal
+        visivel={confirmRemoverAula !== null}
+        titulo="Remover aula fixa?"
+        mensagem={
+          confirmRemoverAula
+            ? `${confirmRemoverAula.materia.nome} não vai mais aparecer automaticamente na Timeline.`
+            : undefined
+        }
+        textoConfirmar="Remover"
+        destrutivo
+        aoConfirmar={confirmarRemocaoAula}
+        aoCancelar={() => setConfirmRemoverAula(null)}
       />
     </SafeAreaView>
   );
