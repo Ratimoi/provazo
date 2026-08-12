@@ -23,8 +23,8 @@ O logotipo reaproveita isso: uma barra horizontal arredondada com pontos colorid
 ### Cor de marca (usada em botões primários, header, ícone do app)
 | Nome | Hex | Uso |
 |---|---|---|
-| Índigo Provazo | `#4F46E5` | Cor primária da marca — ações principais, ícone do app, links |
-| Índigo escuro | `#3730A3` | Estados pressed/hover, texto sobre fundo claro |
+| Terracota Provazo | `#BD5529` | Cor primária da marca — ações principais, ícone do app, links |
+| Terracota escuro | `#96300B` | Estados pressed/hover, texto sobre fundo claro (mesmo tom do gradiente do ícone) |
 
 ### Cores semânticas (já definidas no plano técnico — mantidas 1:1 para não haver retrabalho)
 | Tipo de compromisso | Nome | Hex |
@@ -55,7 +55,7 @@ Ambas são gratuitas (Google Fonts / Open Font License) e fáceis de embutir num
 
 Wordmark **"provazo"** em minúsculas, `Space Grotesk Bold`, acompanhado por um ícone inline: uma barra horizontal arredondada com 4 pontos coloridos (azul, vermelho, âmbar, roxo) — a metáfora da timeline do app. Ver `logo.svg` nesta pasta.
 
-**Ícone do app** (launcher/favicon, `icone-app.svg`): uma ampulheta branca sobre um degradê de terracota (`#E37A47` → `#96300B`), com um grão de areia âmbar-claro (`#FDE1C6`) no gargalo — silhueta única e legível em qualquer tamanho. O terracota é usado só aqui, como cor de destaque do ícone; o resto da interface continua no índigo de marca. Representa o "prazo" do nome de forma direta.
+**Ícone do app** (launcher/favicon, `icone-app.svg`): uma ampulheta branca sobre um degradê de terracota (`#E37A47` → `#96300B`), com um grão de areia âmbar-claro (`#FDE1C6`) no gargalo — silhueta única e legível em qualquer tamanho. O terracota do ícone é a cor de marca em todo o app: botões primários, header e links usam `#BD5529` (ponto médio do degradê). Representa o "prazo" do nome de forma direta.
 
 ## Tom de voz
 
