@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AvaliacaoForm } from '../../../src/components/avaliacoes/AvaliacaoForm';
 import {
@@ -52,14 +53,14 @@ export default function DetalheAvaliacaoScreen() {
 
   if (!avaliacao) {
     return (
-      <View style={styles.vazio}>
+      <SafeAreaView style={styles.vazio} edges={['top']}>
         <Text style={styles.vazioTexto}>Avaliação não encontrada.</Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={{ flex: 1 }}>
+    <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
       <AvaliacaoForm
         materias={materias}
         rotuloBotao="Salvar alterações"
@@ -85,7 +86,7 @@ export default function DetalheAvaliacaoScreen() {
           {mutacaoExcluir.isPending ? 'Excluindo…' : 'Excluir avaliação'}
         </Text>
       </Pressable>
-    </View>
+    </SafeAreaView>
   );
 }
 

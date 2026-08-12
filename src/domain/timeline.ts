@@ -1,8 +1,15 @@
 import { listAvaliacoesPorData } from './avaliacoes';
 import { CORES_TIPO } from './cores';
 import { listEventosUnicosPorData } from './eventosUnicos';
+import { expandirEventosRecorrentesParaDia } from './recorrencia';
 
-export type TipoCompromisso = 'aula' | 'prova' | 'trabalho' | 'pessoal';
+export type TipoCompromisso =
+  | 'aula'
+  | 'prova'
+  | 'trabalho'
+  | 'pessoal'
+  | 'aniversario'
+  | 'outro';
 
 export type Compromisso = {
   id: string;
@@ -12,7 +19,7 @@ export type Compromisso = {
   corHex: string;
   horaInicio: string;
   horaFim: string | null;
-  origem: 'avaliacao' | 'evento_unico';
+  origem: 'avaliacao' | 'evento_unico' | 'recorrente';
   origemId: number;
   materiaId?: number;
 };
@@ -23,12 +30,13 @@ export function minutosDoDia(hora: string): number {
 }
 
 /**
- * Junta avaliações + eventos únicos de um dia (seção 3 do plano, sem a
- * expansão de eventos recorrentes ainda — Fase 3), ordenados por horário.
+ * Junta avaliações, eventos únicos e a expansão dos eventos recorrentes
+ * (seções 3 e 5 do plano) de um dia, ordenados por horário.
  */
 export function listCompromissosDoDia(data: string): Compromisso[] {
   const avaliacoes = listAvaliacoesPorData(data);
   const eventos = listEventosUnicosPorData(data);
+  const recorrentes = expandirEventosRecorrentesParaDia(data);
 
   const compromissos: Compromisso[] = [
     ...avaliacoes.map((av) => ({
@@ -52,6 +60,18 @@ export function listCompromissosDoDia(data: string): Compromisso[] {
       horaFim: ev.horaFim,
       origem: 'evento_unico' as const,
       origemId: ev.id,
+    })),
+    ...recorrentes.map((oc) => ({
+      id: oc.id,
+      tipo: oc.tipo as TipoCompromisso,
+      titulo: oc.titulo,
+      subtitulo: oc.materiaNome,
+      corHex: oc.corHex,
+      horaInicio: oc.horaInicio,
+      horaFim: oc.horaFim,
+      origem: 'recorrente' as const,
+      origemId: oc.eventoRecorrenteId,
+      materiaId: oc.materiaId,
     })),
   ];
 

@@ -1,0 +1,29 @@
+name: Publica atualização OTA (main)
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Publicar atualização via EAS Update
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          npx eas-cli update \
+            --branch preview \
+            --environment preview \
+            --platform android \
+            --non-interactive \
+            --message "${{ github.event.head_commit.message }}"

@@ -53,9 +53,9 @@ Ambas são gratuitas (Google Fonts / Open Font License) e fáceis de embutir num
 
 ## Logotipo
 
-Wordmark **"provazo"** em minúsculas, `Space Grotesk Bold`, acompanhado (ou substituído, em espaços pequenos) por um ícone: uma barra horizontal arredondada com 4 pontos coloridos (azul, vermelho, âmbar, roxo) distribuídos ao longo dela — a mesma metáfora da timeline do app.
+Wordmark **"provazo"** em minúsculas, `Space Grotesk Bold`, acompanhado por um ícone inline: uma barra horizontal arredondada com 4 pontos coloridos (azul, vermelho, âmbar, roxo) — a metáfora da timeline do app. Ver `logo.svg` nesta pasta.
 
-Ver `logo.svg` nesta pasta para a versão vetorial (wordmark + ícone) e `icone-app.svg` para o ícone isolado (uso em app icon / favicon).
+**Ícone do app** (launcher/favicon, `icone-app.svg`): um checkmark branco grosso sobre fundo índigo, com um pontinho âmbar na ponta — silhueta única e legível em qualquer tamanho, ao contrário da composição de pontos do logotipo, que só funciona em telas maiores. Representa "prova feita, prazo cumprido".
 
 ## Tom de voz
 

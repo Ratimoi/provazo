@@ -42,6 +42,16 @@ export const font = {
   bodySemibold: 'Inter_600SemiBold',
 };
 
+/** Escolhe texto claro ou escuro conforme o brilho do fundo, pra evitar
+ * baixo contraste em cima de cores claras da paleta (âmbar, lima...). */
+export function corDeTexto(corFundoHex: string): string {
+  const r = parseInt(corFundoHex.slice(1, 3), 16);
+  const g = parseInt(corFundoHex.slice(3, 5), 16);
+  const b = parseInt(corFundoHex.slice(5, 7), 16);
+  const brilho = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return brilho > 0.6 ? colors.ink : colors.surface;
+}
+
 export const shadow = {
   card: {
     shadowColor: '#18181B',

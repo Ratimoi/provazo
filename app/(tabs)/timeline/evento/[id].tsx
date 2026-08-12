@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EventoUnicoForm } from '../../../../src/components/timeline/EventoUnicoForm';
 import {
@@ -44,14 +45,14 @@ export default function DetalheEventoScreen() {
 
   if (!evento) {
     return (
-      <View style={styles.vazio}>
+      <SafeAreaView style={styles.vazio} edges={['top']}>
         <Text style={styles.vazioTexto}>Compromisso não encontrado.</Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={{ flex: 1 }}>
+    <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
       <EventoUnicoForm
         dataInicial={evento.data}
         rotuloBotao="Salvar alterações"
@@ -73,7 +74,7 @@ export default function DetalheEventoScreen() {
           {mutacaoExcluir.isPending ? 'Excluindo…' : 'Excluir compromisso'}
         </Text>
       </Pressable>
-    </View>
+    </SafeAreaView>
   );
 }
 

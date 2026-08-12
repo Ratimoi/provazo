@@ -1,14 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { router } from 'expo-router';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { CompromissoListItem } from '../../../src/components/timeline/CompromissoListItem';
-import { TimelineStrip } from '../../../src/components/timeline/TimelineStrip';
+import { AgendaVertical } from '../../../src/components/timeline/AgendaVertical';
 import type { Compromisso } from '../../../src/domain/timeline';
 import { getMateria } from '../../../src/domain/materias';
-import { useCompromissosDoDia } from '../../../src/hooks/useCompromissosDoDia';
+import { pularOcorrencia } from '../../../src/domain/eventosRecorrentes';
+import {
+  compromissosQueryKey,
+  useCompromissosDoDia,
+} from '../../../src/hooks/useCompromissosDoDia';
 import { useDiaSelecionado } from '../../../src/hooks/useDiaSelecionado';
 import { colors, font, radii, shadow, spacing } from '../../../src/theme/tokens';
 
@@ -16,6 +21,7 @@ export default function TimelineScreen() {
   const { data, dataIso, ehHoje, irParaAnterior, irParaProximo, irParaHoje } =
     useDiaSelecionado();
   const { data: compromissos = [] } = useCompromissosDoDia(dataIso);
+  const queryClient = useQueryClient();
 
   function abrirCompromisso(compromisso: Compromisso) {
     if (compromisso.origem === 'avaliacao') {
@@ -30,16 +36,30 @@ export default function TimelineScreen() {
           semestreId: String(materia.semestreId),
         },
       });
-    } else {
+    } else if (compromisso.origem === 'evento_unico') {
       router.push({
         pathname: '/timeline/evento/[id]',
         params: { id: String(compromisso.origemId) },
       });
+    } else {
+      Alert.alert(compromisso.titulo, 'Compromisso recorrente', [
+        { text: 'Fechar', style: 'cancel' },
+        {
+          text: 'Pular esta ocorrência',
+          style: 'destructive',
+          onPress: () => {
+            pularOcorrencia(compromisso.origemId, dataIso);
+            queryClient.invalidateQueries({
+              queryKey: compromissosQueryKey(dataIso),
+            });
+          },
+        },
+      ]);
     }
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <View style={styles.seletor}>
           <Pressable onPress={irParaAnterior} hitSlop={10}>
@@ -71,33 +91,12 @@ export default function TimelineScreen() {
         </Pressable>
       </View>
 
-      <TimelineStrip
+      <AgendaVertical
         compromissos={compromissos}
+        ehHoje={ehHoje}
         onPressCompromisso={abrirCompromisso}
       />
-
-      {compromissos.length === 0 ? (
-        <View style={styles.vazio}>
-          <View style={styles.vazioIconContainer}>
-            <Ionicons name="cafe-outline" size={26} color={colors.brand} />
-          </View>
-          <Text style={styles.vazioTexto}>Nada marcado para esse dia.</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={compromissos}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.lista}
-          renderItem={({ item }) => (
-            <CompromissoListItem
-              compromisso={item}
-              onPress={() => abrirCompromisso(item)}
-            />
-          )}
-          ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
-        />
-      )}
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -106,13 +105,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.bg,
     paddingTop: spacing.lg,
-    gap: spacing.lg,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
     gap: spacing.md,
   },
   seletor: {
@@ -146,31 +145,5 @@ const styles = StyleSheet.create({
   },
   botaoPressed: {
     opacity: 0.85,
-  },
-  lista: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: 32,
-  },
-  vazio: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 32,
-    gap: spacing.xs,
-  },
-  vazioIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: radii.full,
-    backgroundColor: colors.brandSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.sm,
-  },
-  vazioTexto: {
-    fontFamily: font.body,
-    fontSize: 14,
-    color: colors.inkSoft,
-    textAlign: 'center',
   },
 });
