@@ -153,3 +153,15 @@ export const eventoUnico = sqliteTable(
   },
   (table) => [index('idx_evento_unico_data').on(table.data)],
 );
+
+// Tarefas soltas, sem data/hora — coisas pra fazer "em algum momento"
+// (ex: "continuar o learncpp"), fora do fluxo de provas/trabalhos/timeline.
+export const tarefa = sqliteTable('tarefa', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  titulo: text('titulo').notNull(),
+  concluida: integer('concluida', { mode: 'boolean' }).notNull().default(false),
+  observacoes: text('observacoes'),
+  createdAt: text('created_at')
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+});

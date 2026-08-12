@@ -8,6 +8,8 @@ const ROTULO_TIPO: Record<Compromisso['tipo'], string> = {
   prova: 'Prova',
   trabalho: 'Trabalho',
   pessoal: 'Pessoal',
+  aniversario: 'Aniversário',
+  outro: 'Outro',
 };
 
 export function CompromissoListItem({

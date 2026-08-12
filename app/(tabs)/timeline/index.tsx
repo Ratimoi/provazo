@@ -1,15 +1,20 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { router } from 'expo-router';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CompromissoListItem } from '../../../src/components/timeline/CompromissoListItem';
 import { TimelineStrip } from '../../../src/components/timeline/TimelineStrip';
 import type { Compromisso } from '../../../src/domain/timeline';
 import { getMateria } from '../../../src/domain/materias';
-import { useCompromissosDoDia } from '../../../src/hooks/useCompromissosDoDia';
+import { pularOcorrencia } from '../../../src/domain/eventosRecorrentes';
+import {
+  compromissosQueryKey,
+  useCompromissosDoDia,
+} from '../../../src/hooks/useCompromissosDoDia';
 import { useDiaSelecionado } from '../../../src/hooks/useDiaSelecionado';
 import { colors, font, radii, shadow, spacing } from '../../../src/theme/tokens';
 
@@ -17,6 +22,7 @@ export default function TimelineScreen() {
   const { data, dataIso, ehHoje, irParaAnterior, irParaProximo, irParaHoje } =
     useDiaSelecionado();
   const { data: compromissos = [] } = useCompromissosDoDia(dataIso);
+  const queryClient = useQueryClient();
 
   function abrirCompromisso(compromisso: Compromisso) {
     if (compromisso.origem === 'avaliacao') {
@@ -31,11 +37,25 @@ export default function TimelineScreen() {
           semestreId: String(materia.semestreId),
         },
       });
-    } else {
+    } else if (compromisso.origem === 'evento_unico') {
       router.push({
         pathname: '/timeline/evento/[id]',
         params: { id: String(compromisso.origemId) },
       });
+    } else {
+      Alert.alert(compromisso.titulo, 'Compromisso recorrente', [
+        { text: 'Fechar', style: 'cancel' },
+        {
+          text: 'Pular esta ocorrência',
+          style: 'destructive',
+          onPress: () => {
+            pularOcorrencia(compromisso.origemId, dataIso);
+            queryClient.invalidateQueries({
+              queryKey: compromissosQueryKey(dataIso),
+            });
+          },
+        },
+      ]);
     }
   }
 
