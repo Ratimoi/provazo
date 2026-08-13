@@ -3,6 +3,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   SectionList,
   StyleSheet,
@@ -457,10 +459,15 @@ export default function ProvasTrabalhosScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
       <SectionList
         sections={secoes}
         keyExtractor={(item) => String(item.id)}
         contentContainerStyle={styles.lista}
+        keyboardShouldPersistTaps="handled"
         ListHeaderComponent={cabecalho}
         ListFooterComponent={
           <View style={styles.rodape}>
@@ -532,6 +539,7 @@ export default function ProvasTrabalhosScreen() {
         ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
         SectionSeparatorComponent={() => <View style={{ height: spacing.lg }} />}
       />
+      </KeyboardAvoidingView>
 
       <NovaMateriaModal
         visivel={modalMateriaAberto}
@@ -631,6 +639,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.bg,
+  },
+  flex: {
+    flex: 1,
   },
   header: {
     flexDirection: 'row',
