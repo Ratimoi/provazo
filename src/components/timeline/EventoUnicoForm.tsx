@@ -112,7 +112,7 @@ export function EventoUnicoForm({
       <Text style={styles.rotulo}>Título</Text>
       <TextInput
         style={styles.input}
-        placeholder="Ex: Consulta, reunião…"
+        placeholder="Novo compromisso"
         value={valor.titulo}
         onChangeText={(v) => atualizar('titulo', v)}
         autoFocus
