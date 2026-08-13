@@ -30,15 +30,21 @@ export default function NovoEventoScreen() {
   });
 
   const mutacaoRecorrente = useMutation({
-    mutationFn: (variaveis: { dados: NovoEventoUnico; frequencia: FrequenciaRecorrencia }) =>
+    mutationFn: (variaveis: {
+      dados: NovoEventoUnico;
+      frequencia: FrequenciaRecorrencia;
+      diasSemana: number[];
+    }) =>
       Promise.resolve(
         createEventoRecorrentePessoal({
           titulo: variaveis.dados.titulo,
           corHex: variaveis.dados.corHex,
           frequencia: variaveis.frequencia,
           dataBase: variaveis.dados.data,
+          diasSemana: variaveis.diasSemana,
           horaInicio: variaveis.dados.horaInicio,
           horaFim: variaveis.dados.horaFim ?? null,
+          observacoes: variaveis.dados.observacoes ?? null,
         }),
       ),
     onSuccess: (_novo, variaveis) => {
@@ -49,11 +55,15 @@ export default function NovoEventoScreen() {
     },
   });
 
-  function handleSalvar(dados: NovoEventoUnico, repeticao: Repeticao) {
+  function handleSalvar(
+    dados: NovoEventoUnico,
+    repeticao: Repeticao,
+    diasSemana: number[],
+  ) {
     if (repeticao === 'nunca') {
       mutacaoUnico.mutate(dados);
     } else {
-      mutacaoRecorrente.mutate({ dados, frequencia: repeticao });
+      mutacaoRecorrente.mutate({ dados, frequencia: repeticao, diasSemana });
     }
   }
 

@@ -216,10 +216,15 @@ export type NovoEventoRecorrentePessoal = {
   titulo: string;
   corHex: string;
   frequencia: FrequenciaRecorrencia;
-  /** Primeira ocorrência (AAAA-MM-DD) — define o dia da semana/mês/ano em que ele se repete. */
+  /** Primeira ocorrência (AAAA-MM-DD) — pra 'mensal'/'anual', define o dia
+   * do mês/ano em que se repete. Pra 'semanal', só é usada como registro
+   * (quem manda são os dias em `diasSemana`). */
   dataBase: string;
+  /** Só relevante quando `frequencia` é 'semanal'. */
+  diasSemana: number[];
   horaInicio: string;
   horaFim: string | null;
+  observacoes: string | null;
 };
 
 /** Cria um compromisso pessoal que se repete (evento_recorrente tipo 'outro'). */
@@ -237,14 +242,19 @@ export function createEventoRecorrentePessoal(
       dataBase: dados.dataBase,
       horaInicio: dados.horaInicio,
       horaFim: dados.horaFim,
+      observacoes: dados.observacoes,
     })
     .returning()
     .get();
 
-  if (dados.frequencia === 'semanal') {
-    const diaSemana = new Date(`${dados.dataBase}T00:00:00`).getDay();
+  if (dados.frequencia === 'semanal' && dados.diasSemana.length > 0) {
     db.insert(eventoRecorrenteDiaSemana)
-      .values({ eventoRecorrenteId: evento.id, diaSemana })
+      .values(
+        dados.diasSemana.map((diaSemana) => ({
+          eventoRecorrenteId: evento.id,
+          diaSemana,
+        })),
+      )
       .run();
   }
 
