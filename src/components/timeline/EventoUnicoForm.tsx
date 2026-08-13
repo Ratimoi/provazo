@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import {
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -99,7 +101,14 @@ export function EventoUnicoForm({
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+    <ScrollView
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+    >
       <Text style={styles.rotulo}>Título</Text>
       <TextInput
         style={styles.input}
@@ -183,10 +192,14 @@ export function EventoUnicoForm({
         <Text style={styles.botaoSalvarTexto}>{rotuloBotao}</Text>
       </Pressable>
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
   container: {
     padding: spacing.lg,
     gap: spacing.xs,

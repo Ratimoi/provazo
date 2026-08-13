@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Modal, Pressable, StyleSheet, View } from 'react-native';
+import {
+  Animated,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, radii, shadow, spacing } from '../../theme/tokens';
@@ -67,7 +75,14 @@ export function BottomSheetModal({
       animationType="none"
       onRequestClose={aoFechar}
     >
-      <View style={styles.raiz}>
+      {/* behavior="height" encolhe essa view quando o teclado abre — como o
+       * Modal do RN tem janela nativa própria no Android, ela não se
+       * redimensiona sozinha como uma tela comum, então sem isso o teclado
+       * cobre o campo em edição. */}
+      <KeyboardAvoidingView
+        style={styles.raiz}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
         <Animated.View
           style={[styles.fundo, { opacity: opacidadeFundo }]}
         />
@@ -86,7 +101,7 @@ export function BottomSheetModal({
             </View>
           </Animated.View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
