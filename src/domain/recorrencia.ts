@@ -65,6 +65,15 @@ export function expandirEventosRecorrentesParaDia(
     )
     .all();
 
+  const mensais = selecionarBase()
+    .where(
+      and(
+        eq(eventoRecorrente.frequencia, 'mensal'),
+        sql`strftime('%d', ${eventoRecorrente.dataBase}) = ${dia}`,
+      ),
+    )
+    .all();
+
   const anuais = selecionarBase()
     .where(
       and(
@@ -74,7 +83,7 @@ export function expandirEventosRecorrentesParaDia(
     )
     .all();
 
-  const candidatos = [...semanais, ...anuais];
+  const candidatos = [...semanais, ...mensais, ...anuais];
   if (candidatos.length === 0) return [];
 
   const excecoes = db

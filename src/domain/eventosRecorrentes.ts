@@ -144,6 +144,47 @@ export function deleteAula(id: number): void {
   db.delete(eventoRecorrente).where(eq(eventoRecorrente.id, id)).run();
 }
 
+export type FrequenciaRecorrencia = 'semanal' | 'mensal' | 'anual';
+
+export type NovoEventoRecorrentePessoal = {
+  titulo: string;
+  corHex: string;
+  frequencia: FrequenciaRecorrencia;
+  /** Primeira ocorrência (AAAA-MM-DD) — define o dia da semana/mês/ano em que ele se repete. */
+  dataBase: string;
+  horaInicio: string;
+  horaFim: string | null;
+};
+
+/** Cria um compromisso pessoal que se repete (evento_recorrente tipo 'outro'). */
+export function createEventoRecorrentePessoal(
+  dados: NovoEventoRecorrentePessoal,
+): EventoRecorrente {
+  const evento = db
+    .insert(eventoRecorrente)
+    .values({
+      titulo: dados.titulo,
+      tipo: 'outro',
+      materiaId: null,
+      corHex: dados.corHex,
+      frequencia: dados.frequencia,
+      dataBase: dados.dataBase,
+      horaInicio: dados.horaInicio,
+      horaFim: dados.horaFim,
+    })
+    .returning()
+    .get();
+
+  if (dados.frequencia === 'semanal') {
+    const diaSemana = new Date(`${dados.dataBase}T00:00:00`).getDay();
+    db.insert(eventoRecorrenteDiaSemana)
+      .values({ eventoRecorrenteId: evento.id, diaSemana })
+      .run();
+  }
+
+  return evento;
+}
+
 /** Marca uma data específica pra essa aula não aparecer (feriado, aula cancelada). */
 export function pularOcorrencia(eventoRecorrenteId: number, data: string): void {
   db.insert(eventoRecorrenteExcecao)

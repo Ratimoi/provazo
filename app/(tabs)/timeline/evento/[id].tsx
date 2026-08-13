@@ -1,9 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EventoUnicoForm } from '../../../../src/components/timeline/EventoUnicoForm';
+import { CabecalhoTela } from '../../../../src/components/ui/CabecalhoTela';
 import {
   deleteEventoUnico,
   getEventoUnico,
@@ -45,14 +46,18 @@ export default function DetalheEventoScreen() {
 
   if (!evento) {
     return (
-      <SafeAreaView style={styles.vazio} edges={['top']}>
-        <Text style={styles.vazioTexto}>Compromisso não encontrado.</Text>
+      <SafeAreaView style={styles.telaVazia} edges={['top']}>
+        <CabecalhoTela titulo="Compromisso" />
+        <View style={styles.vazio}>
+          <Text style={styles.vazioTexto}>Compromisso não encontrado.</Text>
+        </View>
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
+      <CabecalhoTela titulo="Editar compromisso" />
       <EventoUnicoForm
         dataInicial={evento.data}
         rotuloBotao="Salvar alterações"
@@ -79,12 +84,15 @@ export default function DetalheEventoScreen() {
 }
 
 const styles = StyleSheet.create({
+  telaVazia: {
+    flex: 1,
+    backgroundColor: colors.bg,
+  },
   vazio: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
-    backgroundColor: colors.bg,
   },
   vazioTexto: {
     fontFamily: font.body,

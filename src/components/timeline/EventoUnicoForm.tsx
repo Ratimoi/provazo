@@ -10,10 +10,23 @@ import {
 
 import { CORES_TIPO } from '../../domain/cores';
 import type { NovoEventoUnico } from '../../domain/eventosUnicos';
+import type { FrequenciaRecorrencia } from '../../domain/eventosRecorrentes';
 import { PALETA_MATERIAS } from '../../domain/materias';
 import { colors, font, radii, spacing } from '../../theme/tokens';
+import { DataInput } from '../ui/DataInput';
+import { HoraInput } from '../ui/HoraInput';
 
 const REGEX_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
+const REGEX_DATA = /^\d{4}-\d{2}-\d{2}$/;
+
+export type Repeticao = 'nunca' | FrequenciaRecorrencia;
+
+const OPCOES_REPETICAO: { valor: Repeticao; rotulo: string }[] = [
+  { valor: 'nunca', rotulo: 'Nunca' },
+  { valor: 'semanal', rotulo: 'Toda semana' },
+  { valor: 'mensal', rotulo: 'Todo mês' },
+  { valor: 'anual', rotulo: 'Todo ano' },
+];
 
 export type ValorFormularioEvento = {
   titulo: string;
@@ -27,12 +40,15 @@ export function EventoUnicoForm({
   dataInicial,
   valorInicial,
   rotuloBotao = 'Salvar',
+  permiteRepetir = false,
   aoSalvar,
 }: {
   dataInicial: string;
   valorInicial?: Partial<ValorFormularioEvento>;
   rotuloBotao?: string;
-  aoSalvar: (dados: NovoEventoUnico) => void;
+  /** Mostra o seletor "Repetir" — só faz sentido ao criar um compromisso novo. */
+  permiteRepetir?: boolean;
+  aoSalvar: (dados: NovoEventoUnico, repeticao: Repeticao) => void;
 }) {
   const [valor, setValor] = useState<ValorFormularioEvento>({
     titulo: '',
@@ -43,6 +59,7 @@ export function EventoUnicoForm({
     ...valorInicial,
   });
   const [erro, setErro] = useState<string | null>(null);
+  const [repeticao, setRepeticao] = useState<Repeticao>('nunca');
 
   function atualizar<K extends keyof ValorFormularioEvento>(
     campo: K,
@@ -56,6 +73,10 @@ export function EventoUnicoForm({
       setErro('Dê um título pra esse compromisso.');
       return;
     }
+    if (!REGEX_DATA.test(valor.data)) {
+      setErro('Data inválida — use o formato AAAA-MM-DD.');
+      return;
+    }
     if (!REGEX_HORA.test(valor.horaInicio)) {
       setErro('Hora de início inválida — use o formato HH:MM.');
       return;
@@ -65,13 +86,16 @@ export function EventoUnicoForm({
       return;
     }
     setErro(null);
-    aoSalvar({
-      titulo: valor.titulo.trim(),
-      data: valor.data,
-      horaInicio: valor.horaInicio,
-      horaFim: valor.horaFim || null,
-      corHex: valor.corHex,
-    });
+    aoSalvar(
+      {
+        titulo: valor.titulo.trim(),
+        data: valor.data,
+        horaInicio: valor.horaInicio,
+        horaFim: valor.horaFim || null,
+        corHex: valor.corHex,
+      },
+      repeticao,
+    );
   }
 
   return (
@@ -86,36 +110,57 @@ export function EventoUnicoForm({
       />
 
       <Text style={styles.rotulo}>Data</Text>
-      <TextInput
+      <DataInput
         style={styles.input}
-        placeholder="AAAA-MM-DD"
         value={valor.data}
         onChangeText={(v) => atualizar('data', v)}
-        keyboardType="numbers-and-punctuation"
       />
 
       <View style={styles.linha}>
         <View style={styles.metade}>
           <Text style={styles.rotulo}>Início</Text>
-          <TextInput
+          <HoraInput
             style={styles.input}
-            placeholder="HH:MM"
             value={valor.horaInicio}
             onChangeText={(v) => atualizar('horaInicio', v)}
-            keyboardType="numbers-and-punctuation"
           />
         </View>
         <View style={styles.metade}>
           <Text style={styles.rotulo}>Fim (opcional)</Text>
-          <TextInput
+          <HoraInput
             style={styles.input}
-            placeholder="HH:MM"
             value={valor.horaFim}
             onChangeText={(v) => atualizar('horaFim', v)}
-            keyboardType="numbers-and-punctuation"
           />
         </View>
       </View>
+
+      {permiteRepetir && (
+        <>
+          <Text style={styles.rotulo}>Repetir</Text>
+          <View style={styles.chips}>
+            {OPCOES_REPETICAO.map((opcao) => {
+              const selecionada = opcao.valor === repeticao;
+              return (
+                <Pressable
+                  key={opcao.valor}
+                  onPress={() => setRepeticao(opcao.valor)}
+                  style={[styles.chip, selecionada && styles.chipAtivoNeutro]}
+                >
+                  <Text
+                    style={[
+                      styles.chipTexto,
+                      selecionada && styles.chipTextoAtivo,
+                    ]}
+                  >
+                    {opcao.rotulo}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </>
+      )}
 
       <Text style={styles.rotulo}>Cor</Text>
       <View style={styles.cores}>
@@ -173,6 +218,31 @@ const styles = StyleSheet.create({
   },
   metade: {
     flex: 1,
+  },
+  chips: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    flexWrap: 'wrap',
+  },
+  chip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.full,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+  },
+  chipAtivoNeutro: {
+    backgroundColor: colors.brand,
+    borderColor: colors.brand,
+  },
+  chipTexto: {
+    fontFamily: font.bodySemibold,
+    fontSize: 14,
+    color: colors.ink,
+  },
+  chipTextoAtivo: {
+    color: colors.surface,
   },
   cores: {
     flexDirection: 'row',

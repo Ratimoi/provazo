@@ -1,17 +1,11 @@
 import { useEffect, useState } from 'react';
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import type { Materia } from '../../domain/materias';
 import type { NovaAula } from '../../domain/eventosRecorrentes';
 import { colors, font, radii, shadow, spacing } from '../../theme/tokens';
 import { BottomSheetModal } from '../ui/BottomSheetModal';
+import { HoraInput } from '../ui/HoraInput';
 
 const REGEX_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
 const DIAS = [
@@ -163,22 +157,18 @@ export function NovaAulaModal({
           <View style={styles.linha}>
             <View style={styles.metade}>
               <Text style={styles.rotulo}>Início</Text>
-              <TextInput
+              <HoraInput
                 style={styles.input}
-                placeholder="HH:MM"
                 value={horaInicio}
                 onChangeText={setHoraInicio}
-                keyboardType="numbers-and-punctuation"
               />
             </View>
             <View style={styles.metade}>
               <Text style={styles.rotulo}>Fim (opcional)</Text>
-              <TextInput
+              <HoraInput
                 style={styles.input}
-                placeholder="HH:MM"
                 value={horaFim}
                 onChangeText={setHoraFim}
-                keyboardType="numbers-and-punctuation"
               />
             </View>
           </View>

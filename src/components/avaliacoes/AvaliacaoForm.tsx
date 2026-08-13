@@ -11,6 +11,8 @@ import {
 import type { Materia } from '../../domain/materias';
 import type { NovaAvaliacao } from '../../domain/avaliacoes';
 import { colors, font, radii, spacing } from '../../theme/tokens';
+import { DataInput } from '../ui/DataInput';
+import { HoraInput } from '../ui/HoraInput';
 
 const REGEX_DATA = /^\d{4}-\d{2}-\d{2}$/;
 const REGEX_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -181,22 +183,18 @@ export function AvaliacaoForm({
       <View style={styles.linha}>
         <View style={styles.metade}>
           <Text style={styles.rotulo}>Data</Text>
-          <TextInput
+          <DataInput
             style={styles.input}
-            placeholder="AAAA-MM-DD"
             value={valor.data}
             onChangeText={(v) => atualizar('data', v)}
-            keyboardType="numbers-and-punctuation"
           />
         </View>
         <View style={styles.metade}>
           <Text style={styles.rotulo}>Hora</Text>
-          <TextInput
+          <HoraInput
             style={styles.input}
-            placeholder="HH:MM"
             value={valor.hora}
             onChangeText={(v) => atualizar('hora', v)}
-            keyboardType="numbers-and-punctuation"
           />
         </View>
       </View>
