@@ -1,9 +1,9 @@
 import { CORES_TIPO } from '../domain/cores';
 
 export const colors = {
-  brand: '#BD5529',
-  brandDark: '#96300B',
-  brandSoft: '#FBEDE6',
+  brand: '#6B2545',
+  brandDark: '#421A32',
+  brandSoft: '#F3E6ED',
   tipo: CORES_TIPO,
   ink: '#18181B',
   inkSoft: '#71717A',
@@ -61,7 +61,7 @@ export const shadow = {
     elevation: 2,
   },
   floating: {
-    shadowColor: '#BD5529',
+    shadowColor: '#6B2545',
     shadowOpacity: 0.28,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 6 },
