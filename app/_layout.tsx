@@ -1,5 +1,7 @@
+import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as Updates from 'expo-updates';
 import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
@@ -33,6 +35,23 @@ export default function RootLayout() {
     db,
     migrations,
   );
+
+  // Por padrão o expo-updates só baixa a atualização no boot atual e a
+  // aplica no boot SEGUINTE — dá a impressão de que o app "não atualiza"
+  // porque é preciso reabrir duas vezes. Baixando e recarregando aqui, uma
+  // reabertura já basta.
+  useEffect(() => {
+    if (!Updates.isEnabled) return;
+    Updates.checkForUpdateAsync()
+      .then((resultado) => {
+        if (resultado.isAvailable) {
+          return Updates.fetchUpdateAsync().then(() => Updates.reloadAsync());
+        }
+      })
+      .catch(() => {
+        // sem internet ou erro na checagem — segue com a versão já instalada
+      });
+  }, []);
 
   if (erroMigracao) {
     return (
