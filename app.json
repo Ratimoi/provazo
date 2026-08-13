@@ -2,7 +2,7 @@
   "expo": {
     "name": "provazo",
     "slug": "provazo",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -47,7 +47,7 @@
     },
     "owner": "ratimoi",
     "runtimeVersion": {
-      "policy": "appVersion"
+      "policy": "sdkVersion"
     },
     "updates": {
       "url": "https://u.expo.dev/fdcf04ac-545e-4ca1-a79f-a0383c129286",
