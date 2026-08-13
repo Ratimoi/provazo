@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -15,6 +16,7 @@ import type { NovaAvaliacao } from '../../domain/avaliacoes';
 import { colors, font, radii, spacing } from '../../theme/tokens';
 import { DataInput } from '../ui/DataInput';
 import { HoraInput } from '../ui/HoraInput';
+import { SelecionarMateriaModal } from './SelecionarMateriaModal';
 
 const REGEX_DATA = /^\d{4}-\d{2}-\d{2}$/;
 const REGEX_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -60,6 +62,9 @@ export function AvaliacaoForm({
     ...valorInicial,
   });
   const [erro, setErro] = useState<string | null>(null);
+  const [modalMateriaAberto, setModalMateriaAberto] = useState(false);
+
+  const materiaSelecionada = materias.find((m) => m.id === valor.materiaId);
 
   function atualizar<K extends keyof ValorFormularioAvaliacao>(
     campo: K,
@@ -125,6 +130,7 @@ export function AvaliacaoForm({
   }
 
   return (
+    <>
     <KeyboardAvoidingView
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -134,32 +140,27 @@ export function AvaliacaoForm({
       keyboardShouldPersistTaps="handled"
     >
       <Text style={styles.rotulo}>Matéria</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <View style={styles.chips}>
-          {materias.map((materia) => {
-            const selecionada = materia.id === valor.materiaId;
-            return (
-              <Pressable
-                key={materia.id}
-                onPress={() => atualizar('materiaId', materia.id)}
-                style={[
-                  styles.chip,
-                  selecionada && {
-                    backgroundColor: materia.corHex,
-                    borderColor: materia.corHex,
-                  },
-                ]}
-              >
-                <Text
-                  style={[styles.chipTexto, selecionada && styles.chipTextoAtivo]}
-                >
-                  {materia.nome}
-                </Text>
-              </Pressable>
-            );
-          })}
+      <Pressable
+        style={styles.seletorMateria}
+        onPress={() => setModalMateriaAberto(true)}
+      >
+        {materiaSelecionada && (
+          <View
+            style={[styles.dot, { backgroundColor: materiaSelecionada.corHex }]}
+          />
+        )}
+        <View style={styles.seletorMateriaTextos}>
+          <Text style={styles.seletorMateriaNome} numberOfLines={1}>
+            {materiaSelecionada?.nome ?? 'Escolher matéria'}
+          </Text>
+          {materiaSelecionada?.instituicao && (
+            <Text style={styles.seletorMateriaInstituicao} numberOfLines={1}>
+              {materiaSelecionada.instituicao}
+            </Text>
+          )}
         </View>
-      </ScrollView>
+        <Ionicons name="chevron-down" size={18} color={colors.inkFaint} />
+      </Pressable>
 
       <Text style={styles.rotulo}>Tipo</Text>
       <View style={styles.chips}>
@@ -253,6 +254,14 @@ export function AvaliacaoForm({
       </Pressable>
     </ScrollView>
     </KeyboardAvoidingView>
+      <SelecionarMateriaModal
+        visivel={modalMateriaAberto}
+        materias={materias}
+        materiaSelecionadaId={valor.materiaId}
+        aoFechar={() => setModalMateriaAberto(false)}
+        aoSelecionar={(id) => atualizar('materiaId', id)}
+      />
+    </>
   );
 }
 
@@ -288,6 +297,37 @@ const styles = StyleSheet.create({
   textoMultilinha: {
     minHeight: 80,
     textAlignVertical: 'top',
+  },
+  seletorMateria: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radii.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 2,
+    backgroundColor: colors.surface,
+  },
+  dot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    flexShrink: 0,
+  },
+  seletorMateriaTextos: {
+    flex: 1,
+    gap: 1,
+  },
+  seletorMateriaNome: {
+    fontFamily: font.bodySemibold,
+    fontSize: 16,
+    color: colors.ink,
+  },
+  seletorMateriaInstituicao: {
+    fontFamily: font.body,
+    fontSize: 12.5,
+    color: colors.inkFaint,
   },
   linha: {
     flexDirection: 'row',
