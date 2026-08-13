@@ -16,6 +16,7 @@ export type OcorrenciaRecorrente = {
   corHex: string;
   horaInicio: string;
   horaFim: string | null;
+  observacoes: string | null;
   materiaId?: number;
   materiaNome?: string;
 };
@@ -35,6 +36,7 @@ const selecionarBase = () =>
       corHex: eventoRecorrente.corHex,
       horaInicio: eventoRecorrente.horaInicio,
       horaFim: eventoRecorrente.horaFim,
+      observacoes: eventoRecorrente.observacoes,
       materiaId: eventoRecorrente.materiaId,
       materiaNome: materia.nome,
       materiaCorHex: materia.corHex,
@@ -111,6 +113,7 @@ export function expandirEventosRecorrentesParaDia(
       corHex: (c.tipo === 'aula' ? c.materiaCorHex : c.corHex)!,
       horaInicio: c.horaInicio,
       horaFim: c.horaFim,
+      observacoes: c.observacoes,
       materiaId: c.materiaId ?? undefined,
       materiaNome: c.materiaNome ?? undefined,
     }));

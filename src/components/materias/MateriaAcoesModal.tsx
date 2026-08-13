@@ -8,20 +8,16 @@ import { BottomSheetModal } from '../ui/BottomSheetModal';
 export function MateriaAcoesModal({
   visivel,
   materia,
-  temAula,
   aoFechar,
   aoEditar,
-  aoAdicionarAula,
-  aoRemoverAula,
+  aoGerenciarAulas,
   aoExcluir,
 }: {
   visivel: boolean;
   materia: Materia | null;
-  temAula: boolean;
   aoFechar: () => void;
   aoEditar: () => void;
-  aoAdicionarAula: () => void;
-  aoRemoverAula: () => void;
+  aoGerenciarAulas: () => void;
   aoExcluir: () => void;
 }) {
   if (!materia) return null;
@@ -34,20 +30,7 @@ export function MateriaAcoesModal({
       </View>
 
       <Linha icone="create-outline" texto="Editar matéria" onPress={aoEditar} />
-      {temAula ? (
-        <Linha
-          icone="close-circle-outline"
-          texto="Remover aula fixa"
-          destrutivo
-          onPress={aoRemoverAula}
-        />
-      ) : (
-        <Linha
-          icone="time-outline"
-          texto="Adicionar aula"
-          onPress={aoAdicionarAula}
-        />
-      )}
+      <Linha icone="time-outline" texto="Aulas" onPress={aoGerenciarAulas} />
       <Linha
         icone="trash-outline"
         texto="Excluir matéria"

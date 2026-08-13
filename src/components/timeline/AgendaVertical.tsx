@@ -67,7 +67,10 @@ export function AgendaVertical({
             {Array.from({ length: 24 }, (_, h) => (
               <Text
                 key={h}
-                style={[styles.rotuloHora, { top: h * PX_POR_HORA - 7 }]}
+                style={[
+                  styles.rotuloHora,
+                  { top: Math.max(0, h * PX_POR_HORA - 7) },
+                ]}
               >
                 {rotuloHora(h)}
               </Text>

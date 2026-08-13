@@ -67,6 +67,7 @@ export default function DetalheEventoScreen() {
           horaInicio: evento.horaInicio,
           horaFim: evento.horaFim ?? '',
           corHex: evento.corHex,
+          observacoes: evento.observacoes ?? '',
         }}
         aoSalvar={(dados) => mutacaoSalvar.mutate(dados)}
       />

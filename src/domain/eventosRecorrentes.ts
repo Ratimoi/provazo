@@ -36,6 +36,7 @@ export type Aula = {
   materiaCorHex: string;
   horaInicio: string;
   horaFim: string | null;
+  observacoes: string | null;
   diasSemana: number[];
 };
 
@@ -48,6 +49,7 @@ export function listAulasPorSemestre(semestreId: number): Aula[] {
       materiaId: eventoRecorrente.materiaId,
       horaInicio: eventoRecorrente.horaInicio,
       horaFim: eventoRecorrente.horaFim,
+      observacoes: eventoRecorrente.observacoes,
       materiaNome: materia.nome,
       materiaCorHex: materia.corHex,
     })
@@ -91,7 +93,10 @@ export type NovaAula = {
   titulo: string;
   diasSemana: number[];
   horaInicio: string;
-  horaFim: string | null;
+  // Diferente do evento avulso/avaliação: uma aula de matéria real sempre
+  // tem início e fim definidos, então aqui é obrigatório.
+  horaFim: string;
+  observacoes: string | null;
 };
 
 export function createAula(dados: NovaAula): Aula {
@@ -107,6 +112,7 @@ export function createAula(dados: NovaAula): Aula {
       dataBase: new Date().toISOString().slice(0, 10),
       horaInicio: dados.horaInicio,
       horaFim: dados.horaFim,
+      observacoes: dados.observacoes,
     })
     .returning()
     .get();
@@ -136,6 +142,54 @@ export function createAula(dados: NovaAula): Aula {
     materiaCorHex: materiaVinculada.corHex,
     horaInicio: evento.horaInicio,
     horaFim: evento.horaFim,
+    observacoes: evento.observacoes,
+    diasSemana: dados.diasSemana,
+  };
+}
+
+/** Atualiza uma aula existente, incluindo os dias da semana (apaga e recria). */
+export function updateAula(id: number, dados: NovaAula): Aula {
+  const evento = db
+    .update(eventoRecorrente)
+    .set({
+      titulo: dados.titulo,
+      horaInicio: dados.horaInicio,
+      horaFim: dados.horaFim,
+      observacoes: dados.observacoes,
+    })
+    .where(eq(eventoRecorrente.id, id))
+    .returning()
+    .get();
+
+  db.delete(eventoRecorrenteDiaSemana)
+    .where(eq(eventoRecorrenteDiaSemana.eventoRecorrenteId, id))
+    .run();
+  if (dados.diasSemana.length > 0) {
+    db.insert(eventoRecorrenteDiaSemana)
+      .values(
+        dados.diasSemana.map((diaSemana) => ({
+          eventoRecorrenteId: id,
+          diaSemana,
+        })),
+      )
+      .run();
+  }
+
+  const materiaVinculada = db
+    .select({ nome: materia.nome, corHex: materia.corHex })
+    .from(materia)
+    .where(eq(materia.id, dados.materiaId))
+    .get()!;
+
+  return {
+    id: evento.id,
+    titulo: evento.titulo,
+    materiaId: dados.materiaId,
+    materiaNome: materiaVinculada.nome,
+    materiaCorHex: materiaVinculada.corHex,
+    horaInicio: evento.horaInicio,
+    horaFim: evento.horaFim,
+    observacoes: evento.observacoes,
     diasSemana: dados.diasSemana,
   };
 }

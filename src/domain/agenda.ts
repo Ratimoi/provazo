@@ -3,6 +3,10 @@ import type { Compromisso } from './timeline';
 export const PX_POR_HORA = 64;
 export const ALTURA_TOTAL = 24 * PX_POR_HORA;
 const DURACAO_PADRAO_MIN = 60;
+// Prova/trabalho não "ocupa" um horário como uma aula — é um prazo, não um
+// intervalo — então ganha uma duração padrão bem menor, só o suficiente pra
+// virar um marcador compacto em vez de um bloco do tamanho de uma aula.
+const DURACAO_AVALIACAO_MIN = 20;
 const DURACAO_MINIMA_MIN = 15;
 
 function minutosDoDia(hora: string): number {
@@ -15,9 +19,13 @@ export function intervaloDoCompromisso(compromisso: Compromisso): {
   fimMin: number;
 } {
   const inicioMin = minutosDoDia(compromisso.horaInicio);
+  const duracaoPadrao =
+    compromisso.origem === 'avaliacao'
+      ? DURACAO_AVALIACAO_MIN
+      : DURACAO_PADRAO_MIN;
   const fimBruto = compromisso.horaFim
     ? minutosDoDia(compromisso.horaFim)
-    : inicioMin + DURACAO_PADRAO_MIN;
+    : inicioMin + duracaoPadrao;
   const fimMin = inicioMin + Math.max(fimBruto - inicioMin, DURACAO_MINIMA_MIN);
   return { inicioMin, fimMin };
 }
