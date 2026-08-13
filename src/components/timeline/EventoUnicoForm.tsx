@@ -36,6 +36,7 @@ export type ValorFormularioEvento = {
   horaInicio: string;
   horaFim: string;
   corHex: string;
+  observacoes: string;
 };
 
 export function EventoUnicoForm({
@@ -58,6 +59,7 @@ export function EventoUnicoForm({
     horaInicio: '',
     horaFim: '',
     corHex: CORES_TIPO.pessoal,
+    observacoes: '',
     ...valorInicial,
   });
   const [erro, setErro] = useState<string | null>(null);
@@ -95,6 +97,7 @@ export function EventoUnicoForm({
         horaInicio: valor.horaInicio,
         horaFim: valor.horaFim || null,
         corHex: valor.corHex,
+        observacoes: valor.observacoes.trim() || null,
       },
       repeticao,
     );
@@ -171,6 +174,15 @@ export function EventoUnicoForm({
         </>
       )}
 
+      <Text style={styles.rotulo}>Observações (opcional)</Text>
+      <TextInput
+        style={[styles.input, styles.textoMultilinha]}
+        placeholder="Ex: sala 204, levar o notebook…"
+        value={valor.observacoes}
+        onChangeText={(v) => atualizar('observacoes', v)}
+        multiline
+      />
+
       <Text style={styles.rotulo}>Cor</Text>
       <View style={styles.cores}>
         {PALETA_MATERIAS.map((cor) => (
@@ -224,6 +236,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.ink,
     backgroundColor: colors.surface,
+  },
+  textoMultilinha: {
+    minHeight: 80,
+    textAlignVertical: 'top',
   },
   linha: {
     flexDirection: 'row',

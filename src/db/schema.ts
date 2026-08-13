@@ -89,6 +89,7 @@ export const eventoRecorrente = sqliteTable(
     dataBase: text('data_base').notNull(),
     horaInicio: text('hora_inicio').notNull(),
     horaFim: text('hora_fim'),
+    observacoes: text('observacoes'),
   },
   (table) => [
     // 'aula' sempre tem materiaId e herda a cor dela; os demais tipos
@@ -152,6 +153,7 @@ export const eventoUnico = sqliteTable(
     horaInicio: text('hora_inicio').notNull(),
     horaFim: text('hora_fim'),
     corHex: text('cor_hex').notNull(),
+    observacoes: text('observacoes'),
   },
   (table) => [index('idx_evento_unico_data').on(table.data)],
 );

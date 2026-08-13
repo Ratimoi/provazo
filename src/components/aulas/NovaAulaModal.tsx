@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 
 import type { Materia } from '../../domain/materias';
 import type { NovaAula } from '../../domain/eventosRecorrentes';
@@ -41,6 +48,7 @@ export function NovaAulaModal({
   const [diasSemana, setDiasSemana] = useState<number[]>([]);
   const [horaInicio, setHoraInicio] = useState('');
   const [horaFim, setHoraFim] = useState('');
+  const [observacoes, setObservacoes] = useState('');
   const [erroLocal, setErroLocal] = useState<string | null>(null);
 
   // Toda abertura começa limpa (mesmo motivo do NovaMateriaModal) e já
@@ -52,6 +60,7 @@ export function NovaAulaModal({
       setDiasSemana([]);
       setHoraInicio('');
       setHoraFim('');
+      setObservacoes('');
       setErroLocal(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -77,7 +86,7 @@ export function NovaAulaModal({
       setErroLocal('Hora de início inválida — use o formato HH:MM.');
       return;
     }
-    if (horaFim && !REGEX_HORA.test(horaFim)) {
+    if (!REGEX_HORA.test(horaFim)) {
       setErroLocal('Hora de fim inválida — use o formato HH:MM.');
       return;
     }
@@ -87,7 +96,8 @@ export function NovaAulaModal({
       titulo: materia.nome,
       diasSemana,
       horaInicio,
-      horaFim: horaFim || null,
+      horaFim,
+      observacoes: observacoes.trim() || null,
     });
   }
 
@@ -164,7 +174,7 @@ export function NovaAulaModal({
               />
             </View>
             <View style={styles.metade}>
-              <Text style={styles.rotulo}>Fim (opcional)</Text>
+              <Text style={styles.rotulo}>Fim</Text>
               <HoraInput
                 style={styles.input}
                 value={horaFim}
@@ -172,6 +182,15 @@ export function NovaAulaModal({
               />
             </View>
           </View>
+
+          <Text style={styles.rotulo}>Observações (opcional)</Text>
+          <TextInput
+            style={[styles.input, styles.textoMultilinha]}
+            placeholder="Ex: sala 204, prédio B…"
+            value={observacoes}
+            onChangeText={setObservacoes}
+            multiline
+          />
 
           {(erroLocal || erro) && (
             <Text style={styles.erro}>{erroLocal ?? erro}</Text>
@@ -226,6 +245,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.ink,
     backgroundColor: colors.surface,
+  },
+  textoMultilinha: {
+    minHeight: 70,
+    textAlignVertical: 'top',
   },
   linha: {
     flexDirection: 'row',

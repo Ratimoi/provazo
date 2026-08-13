@@ -15,6 +15,13 @@
       "when": 1786551227315,
       "tag": "0001_aspiring_ravenous",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1786617077269,
+      "tag": "0002_perfect_random",
+      "breakpoints": true
     }
   ]
 }

@@ -19,6 +19,7 @@ export type Compromisso = {
   corHex: string;
   horaInicio: string;
   horaFim: string | null;
+  observacoes?: string | null;
   origem: 'avaliacao' | 'evento_unico' | 'recorrente';
   origemId: number;
   materiaId?: number;
@@ -58,6 +59,7 @@ export function listCompromissosDoDia(data: string): Compromisso[] {
       corHex: ev.corHex,
       horaInicio: ev.horaInicio,
       horaFim: ev.horaFim,
+      observacoes: ev.observacoes,
       origem: 'evento_unico' as const,
       origemId: ev.id,
     })),
@@ -69,6 +71,7 @@ export function listCompromissosDoDia(data: string): Compromisso[] {
       corHex: oc.corHex,
       horaInicio: oc.horaInicio,
       horaFim: oc.horaFim,
+      observacoes: oc.observacoes,
       origem: 'recorrente' as const,
       origemId: oc.eventoRecorrenteId,
       materiaId: oc.materiaId,

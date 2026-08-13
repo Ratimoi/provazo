@@ -13,6 +13,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AvaliacaoCard } from '../../../src/components/avaliacoes/AvaliacaoCard';
+import { EditarAulaModal } from '../../../src/components/aulas/EditarAulaModal';
+import { GerenciarAulasModal } from '../../../src/components/aulas/GerenciarAulasModal';
 import { NovaAulaModal } from '../../../src/components/aulas/NovaAulaModal';
 import { EditarMateriaModal } from '../../../src/components/materias/EditarMateriaModal';
 import { MateriaAcoesModal } from '../../../src/components/materias/MateriaAcoesModal';
@@ -27,6 +29,7 @@ import {
   deleteAula,
   formatarDiasSemana,
   NovaAula,
+  updateAula,
 } from '../../../src/domain/eventosRecorrentes';
 import {
   createMateria,
@@ -102,17 +105,17 @@ export default function ProvasTrabalhosScreen() {
   );
   const [materiaFiltroId, setMateriaFiltroId] = useState<number | null>(null);
   const [buscaMateria, setBuscaMateria] = useState('');
-  const [acoesMateria, setAcoesMateria] = useState<{
-    materia: Materia;
-    aulas: Aula[];
-  } | null>(null);
+  const [acoesMateria, setAcoesMateria] = useState<Materia | null>(null);
   const [materiaEditando, setMateriaEditando] = useState<Materia | null>(null);
   const [confirmExcluirMateria, setConfirmExcluirMateria] =
     useState<Materia | null>(null);
-  const [confirmRemoverAula, setConfirmRemoverAula] = useState<{
-    materia: Materia;
-    aulas: Aula[];
-  } | null>(null);
+  const [gerenciandoAulasDe, setGerenciandoAulasDe] = useState<Materia | null>(
+    null,
+  );
+  const [aulaEditando, setAulaEditando] = useState<Aula | null>(null);
+  const [confirmExcluirAula, setConfirmExcluirAula] = useState<Aula | null>(
+    null,
+  );
 
   const mediasPorMateria = useMemo(
     () => new Map(medias.map((m) => [m.materiaId, m])),
@@ -227,6 +230,20 @@ export default function ProvasTrabalhosScreen() {
     },
   });
 
+  const mutacaoAulaEditar = useMutation({
+    mutationFn: ({ id, dados }: { id: number; dados: NovaAula }) => {
+      try {
+        return Promise.resolve(updateAula(id, dados));
+      } catch (e) {
+        throw new Error(mensagemAmigavel(e) ?? 'Não foi possível salvar.');
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: aulasQueryKey(semestre.id) });
+      setAulaEditando(null);
+    },
+  });
+
   const mutacaoAulaExcluir = useMutation({
     mutationFn: (id: number) => Promise.resolve(deleteAula(id)),
     onSuccess: () => {
@@ -262,32 +279,26 @@ export default function ProvasTrabalhosScreen() {
     setModalAulaAberto(true);
   }
 
-  function handleLongPressMateria(materia: Materia, aulasDaMateria: Aula[]) {
-    setAcoesMateria({ materia, aulas: aulasDaMateria });
+  function handleLongPressMateria(materia: Materia) {
+    setAcoesMateria(materia);
   }
 
   function handleEditarDasAcoes() {
     if (!acoesMateria) return;
     mutacaoMateriaEditar.reset();
-    setMateriaEditando(acoesMateria.materia);
+    setMateriaEditando(acoesMateria);
     setAcoesMateria(null);
   }
 
-  function handleAdicionarAulaDasAcoes() {
+  function handleGerenciarAulasDasAcoes() {
     if (!acoesMateria) return;
-    abrirModalAula(acoesMateria.materia.id);
-    setAcoesMateria(null);
-  }
-
-  function handleRemoverAulaDasAcoes() {
-    if (!acoesMateria) return;
-    setConfirmRemoverAula(acoesMateria);
+    setGerenciandoAulasDe(acoesMateria);
     setAcoesMateria(null);
   }
 
   function handleExcluirDasAcoes() {
     if (!acoesMateria) return;
-    setConfirmExcluirMateria(acoesMateria.materia);
+    setConfirmExcluirMateria(acoesMateria);
     setAcoesMateria(null);
   }
 
@@ -297,10 +308,27 @@ export default function ProvasTrabalhosScreen() {
     setConfirmExcluirMateria(null);
   }
 
-  function confirmarRemocaoAula() {
-    if (!confirmRemoverAula) return;
-    confirmRemoverAula.aulas.forEach((a) => mutacaoAulaExcluir.mutate(a.id));
-    setConfirmRemoverAula(null);
+  function handleAdicionarAulaDoGerenciamento() {
+    if (!gerenciandoAulasDe) return;
+    abrirModalAula(gerenciandoAulasDe.id);
+    setGerenciandoAulasDe(null);
+  }
+
+  function handleEditarAula(aula: Aula) {
+    mutacaoAulaEditar.reset();
+    setAulaEditando(aula);
+    setGerenciandoAulasDe(null);
+  }
+
+  function handleExcluirAulaSolicitado(aula: Aula) {
+    setConfirmExcluirAula(aula);
+    setGerenciandoAulasDe(null);
+  }
+
+  function confirmarExclusaoAula() {
+    if (!confirmExcluirAula) return;
+    mutacaoAulaExcluir.mutate(confirmExcluirAula.id);
+    setConfirmExcluirAula(null);
   }
 
   const cabecalho = (
@@ -391,9 +419,7 @@ export default function ProvasTrabalhosScreen() {
                       atual === materia.id ? null : materia.id,
                     )
                   }
-                  onLongPress={() =>
-                    handleLongPressMateria(materia, aulasDaMateria)
-                  }
+                  onLongPress={() => handleLongPressMateria(materia)}
                 />
               );
             })}
@@ -496,13 +522,35 @@ export default function ProvasTrabalhosScreen() {
       />
       <MateriaAcoesModal
         visivel={acoesMateria !== null}
-        materia={acoesMateria?.materia ?? null}
-        temAula={(acoesMateria?.aulas.length ?? 0) > 0}
+        materia={acoesMateria}
         aoFechar={() => setAcoesMateria(null)}
         aoEditar={handleEditarDasAcoes}
-        aoAdicionarAula={handleAdicionarAulaDasAcoes}
-        aoRemoverAula={handleRemoverAulaDasAcoes}
+        aoGerenciarAulas={handleGerenciarAulasDasAcoes}
         aoExcluir={handleExcluirDasAcoes}
+      />
+      <GerenciarAulasModal
+        visivel={gerenciandoAulasDe !== null}
+        materia={gerenciandoAulasDe}
+        aulas={
+          gerenciandoAulasDe
+            ? (aulasPorMateria.get(gerenciandoAulasDe.id) ?? [])
+            : []
+        }
+        aoFechar={() => setGerenciandoAulasDe(null)}
+        aoEditarAula={handleEditarAula}
+        aoExcluirAula={handleExcluirAulaSolicitado}
+        aoAdicionarAula={handleAdicionarAulaDoGerenciamento}
+      />
+      <EditarAulaModal
+        visivel={aulaEditando !== null}
+        aula={aulaEditando}
+        salvando={mutacaoAulaEditar.isPending}
+        erro={mutacaoAulaEditar.error?.message}
+        aoFechar={() => setAulaEditando(null)}
+        aoSalvar={(dados) => {
+          if (!aulaEditando) return;
+          mutacaoAulaEditar.mutate({ id: aulaEditando.id, dados });
+        }}
       />
       <EditarMateriaModal
         visivel={materiaEditando !== null}
@@ -525,17 +573,17 @@ export default function ProvasTrabalhosScreen() {
         aoCancelar={() => setConfirmExcluirMateria(null)}
       />
       <ConfirmModal
-        visivel={confirmRemoverAula !== null}
-        titulo="Remover aula fixa?"
+        visivel={confirmExcluirAula !== null}
+        titulo="Excluir aula?"
         mensagem={
-          confirmRemoverAula
-            ? `${confirmRemoverAula.materia.nome} não vai mais aparecer automaticamente na Timeline.`
+          confirmExcluirAula
+            ? `${formatarDiasSemana(confirmExcluirAula.diasSemana)} ${confirmExcluirAula.horaInicio} não vai mais aparecer automaticamente na Timeline.`
             : undefined
         }
-        textoConfirmar="Remover"
+        textoConfirmar="Excluir"
         destrutivo
-        aoConfirmar={confirmarRemocaoAula}
-        aoCancelar={() => setConfirmRemoverAula(null)}
+        aoConfirmar={confirmarExclusaoAula}
+        aoCancelar={() => setConfirmExcluirAula(null)}
       />
     </SafeAreaView>
   );
