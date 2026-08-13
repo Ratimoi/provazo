@@ -83,7 +83,9 @@ export const eventoRecorrente = sqliteTable(
       onDelete: 'cascade',
     }),
     corHex: text('cor_hex'),
-    frequencia: text('frequencia', { enum: ['semanal', 'anual'] }).notNull(),
+    frequencia: text('frequencia', {
+      enum: ['semanal', 'mensal', 'anual'],
+    }).notNull(),
     dataBase: text('data_base').notNull(),
     horaInicio: text('hora_inicio').notNull(),
     horaFim: text('hora_fim'),

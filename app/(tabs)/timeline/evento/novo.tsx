@@ -2,15 +2,23 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { EventoUnicoForm } from '../../../../src/components/timeline/EventoUnicoForm';
+import { CabecalhoTela } from '../../../../src/components/ui/CabecalhoTela';
+import {
+  EventoUnicoForm,
+  type Repeticao,
+} from '../../../../src/components/timeline/EventoUnicoForm';
 import { createEventoUnico, NovoEventoUnico } from '../../../../src/domain/eventosUnicos';
+import {
+  createEventoRecorrentePessoal,
+  type FrequenciaRecorrencia,
+} from '../../../../src/domain/eventosRecorrentes';
 import { compromissosQueryKey } from '../../../../src/hooks/useCompromissosDoDia';
 
 export default function NovoEventoScreen() {
   const { data } = useLocalSearchParams<{ data: string }>();
   const queryClient = useQueryClient();
 
-  const mutacao = useMutation({
+  const mutacaoUnico = useMutation({
     mutationFn: (dados: NovoEventoUnico) =>
       Promise.resolve(createEventoUnico(dados)),
     onSuccess: (_novo, dados) => {
@@ -21,12 +29,42 @@ export default function NovoEventoScreen() {
     },
   });
 
+  const mutacaoRecorrente = useMutation({
+    mutationFn: (variaveis: { dados: NovoEventoUnico; frequencia: FrequenciaRecorrencia }) =>
+      Promise.resolve(
+        createEventoRecorrentePessoal({
+          titulo: variaveis.dados.titulo,
+          corHex: variaveis.dados.corHex,
+          frequencia: variaveis.frequencia,
+          dataBase: variaveis.dados.data,
+          horaInicio: variaveis.dados.horaInicio,
+          horaFim: variaveis.dados.horaFim ?? null,
+        }),
+      ),
+    onSuccess: (_novo, variaveis) => {
+      queryClient.invalidateQueries({
+        queryKey: compromissosQueryKey(variaveis.dados.data),
+      });
+      router.back();
+    },
+  });
+
+  function handleSalvar(dados: NovoEventoUnico, repeticao: Repeticao) {
+    if (repeticao === 'nunca') {
+      mutacaoUnico.mutate(dados);
+    } else {
+      mutacaoRecorrente.mutate({ dados, frequencia: repeticao });
+    }
+  }
+
   return (
     <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+      <CabecalhoTela titulo="Novo compromisso" />
       <EventoUnicoForm
         dataInicial={data}
         rotuloBotao="Criar compromisso"
-        aoSalvar={(dados) => mutacao.mutate(dados)}
+        permiteRepetir
+        aoSalvar={handleSalvar}
       />
     </SafeAreaView>
   );
