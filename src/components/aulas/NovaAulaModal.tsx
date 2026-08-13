@@ -66,10 +66,10 @@ export function NovaAulaModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visivel, materiaIdInicial]);
 
-  function alternarDia(dia: number) {
-    setDiasSemana((atual) =>
-      atual.includes(dia) ? atual.filter((d) => d !== dia) : [...atual, dia],
-    );
+  // Uma aula fixa é sempre num dia só — pra outro dia, cria-se uma aula
+  // separada (dá pra ter quantas forem necessárias pela mesma matéria).
+  function selecionarDia(dia: number) {
+    setDiasSemana([dia]);
   }
 
   function handleSalvar() {
@@ -79,7 +79,7 @@ export function NovaAulaModal({
       return;
     }
     if (diasSemana.length === 0) {
-      setErroLocal('Escolha pelo menos um dia da semana.');
+      setErroLocal('Escolha o dia da semana.');
       return;
     }
     if (!REGEX_HORA.test(horaInicio)) {
@@ -141,14 +141,14 @@ export function NovaAulaModal({
             </View>
           </ScrollView>
 
-          <Text style={styles.rotulo}>Dias da semana</Text>
+          <Text style={styles.rotulo}>Dia da semana</Text>
           <View style={styles.chips}>
             {DIAS.map((d) => {
               const selecionado = diasSemana.includes(d.valor);
               return (
                 <Pressable
                   key={d.valor}
-                  onPress={() => alternarDia(d.valor)}
+                  onPress={() => selecionarDia(d.valor)}
                   style={[styles.chip, selecionado && styles.chipAtivoNeutro]}
                 >
                   <Text

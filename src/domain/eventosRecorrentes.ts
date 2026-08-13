@@ -20,10 +20,18 @@ const ABREVIACAO_DIA: Record<number, string> = {
   6: 'Sáb',
 };
 
+// Segunda primeiro, domingo por último — mesma ordem usada pra exibir e
+// pra ordenar a lista de aulas.
+const ORDEM_DIA_SEMANA = [1, 2, 3, 4, 5, 6, 0];
+
+function indiceOrdemDia(dia: number | undefined): number {
+  if (dia == null) return ORDEM_DIA_SEMANA.length;
+  const indice = ORDEM_DIA_SEMANA.indexOf(dia);
+  return indice === -1 ? ORDEM_DIA_SEMANA.length : indice;
+}
+
 export function formatarDiasSemana(dias: number[]): string {
-  const ordem = [1, 2, 3, 4, 5, 6, 0];
-  return ordem
-    .filter((d) => dias.includes(d))
+  return ORDEM_DIA_SEMANA.filter((d) => dias.includes(d))
     .map((d) => ABREVIACAO_DIA[d])
     .join('/');
 }
@@ -83,11 +91,17 @@ export function listAulasPorSemestre(semestreId: number): Aula[] {
     diasPorAula.set(d.eventoRecorrenteId, lista);
   }
 
-  return aulas.map((a) => ({
-    ...a,
-    materiaId: a.materiaId!,
-    diasSemana: (diasPorAula.get(a.id) ?? []).sort(),
-  }));
+  return aulas
+    .map((a) => ({
+      ...a,
+      materiaId: a.materiaId!,
+      diasSemana: (diasPorAula.get(a.id) ?? []).sort(),
+    }))
+    .sort((x, y) => {
+      const diaX = indiceOrdemDia(x.diasSemana[0]);
+      const diaY = indiceOrdemDia(y.diasSemana[0]);
+      return diaX !== diaY ? diaX - diaY : x.horaInicio.localeCompare(y.horaInicio);
+    });
 }
 
 export type NovaAula = {
