@@ -139,7 +139,11 @@ export default function ProvasTrabalhosScreen() {
   const materiasVisiveis = useMemo(() => {
     const busca = normalizar(buscaMateria);
     if (busca.length === 0) return materias;
-    return materias.filter((m) => normalizar(m.nome).includes(busca));
+    return materias.filter(
+      (m) =>
+        normalizar(m.nome).includes(busca) ||
+        (m.instituicao && normalizar(m.instituicao).includes(busca)),
+    );
   }, [materias, buscaMateria]);
 
   // Recalcula sempre que a lista de matérias muda (após criar/editar), pra
@@ -400,7 +404,7 @@ export default function ProvasTrabalhosScreen() {
             <Ionicons name="search-outline" size={16} color={colors.inkFaint} />
             <TextInput
               style={styles.buscaInput}
-              placeholder="Buscar matéria…"
+              placeholder="Buscar por matéria ou instituição…"
               value={buscaMateria}
               onChangeText={setBuscaMateria}
               returnKeyType="search"
