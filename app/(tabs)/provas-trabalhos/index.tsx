@@ -4,10 +4,10 @@ import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
   Pressable,
-  ScrollView,
   SectionList,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,7 +16,7 @@ import { AvaliacaoCard } from '../../../src/components/avaliacoes/AvaliacaoCard'
 import { NovaAulaModal } from '../../../src/components/aulas/NovaAulaModal';
 import { EditarMateriaModal } from '../../../src/components/materias/EditarMateriaModal';
 import { MateriaAcoesModal } from '../../../src/components/materias/MateriaAcoesModal';
-import { MateriaChip } from '../../../src/components/materias/MateriaChip';
+import { MateriaCard } from '../../../src/components/materias/MateriaCard';
 import { NovaMateriaModal } from '../../../src/components/materias/NovaMateriaModal';
 import { TarefasSection } from '../../../src/components/tarefas/TarefasSection';
 import { ConfirmModal } from '../../../src/components/ui/ConfirmModal';
@@ -49,6 +49,17 @@ import { mediasQueryKey, useMediasPorMateria } from '../../../src/hooks/useMedia
 import { useSemestreSelecionado } from '../../../src/hooks/useSemestreSelecionado';
 import { TAREFAS_QUERY_KEY, useTarefas } from '../../../src/hooks/useTarefas';
 import { colors, font, radii, shadow, spacing } from '../../../src/theme/tokens';
+
+const LIMIAR_BUSCA_MATERIAS = 6;
+
+/** Ignora acentos na busca, pra "calculo" achar "Cálculo". */
+function normalizar(texto: string): string {
+  return texto
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .trim();
+}
 
 function agruparPorMateria(avaliacoes: AvaliacaoComMateria[]) {
   const grupos = new Map<string, AvaliacaoComMateria[]>();
@@ -90,6 +101,7 @@ export default function ProvasTrabalhosScreen() {
     null,
   );
   const [materiaFiltroId, setMateriaFiltroId] = useState<number | null>(null);
+  const [buscaMateria, setBuscaMateria] = useState('');
   const [acoesMateria, setAcoesMateria] = useState<{
     materia: Materia;
     aulas: Aula[];
@@ -115,6 +127,12 @@ export default function ProvasTrabalhosScreen() {
     }
     return mapa;
   }, [aulas]);
+
+  const materiasVisiveis = useMemo(() => {
+    const busca = normalizar(buscaMateria);
+    if (busca.length === 0) return materias;
+    return materias.filter((m) => normalizar(m.nome).includes(busca));
+  }, [materias, buscaMateria]);
 
   const avaliacoesFiltradas = useMemo(
     () =>
@@ -326,9 +344,32 @@ export default function ProvasTrabalhosScreen() {
             <Ionicons name="add-circle-outline" size={20} color={colors.brand} />
           </Pressable>
         </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View style={styles.chips}>
-            {materias.map((materia) => {
+
+        {materias.length > LIMIAR_BUSCA_MATERIAS && (
+          <View style={styles.busca}>
+            <Ionicons name="search-outline" size={16} color={colors.inkFaint} />
+            <TextInput
+              style={styles.buscaInput}
+              placeholder="Buscar matéria…"
+              value={buscaMateria}
+              onChangeText={setBuscaMateria}
+              returnKeyType="search"
+            />
+            {buscaMateria.length > 0 && (
+              <Pressable onPress={() => setBuscaMateria('')} hitSlop={8}>
+                <Ionicons name="close-circle" size={16} color={colors.inkFaint} />
+              </Pressable>
+            )}
+          </View>
+        )}
+
+        {materiasVisiveis.length === 0 ? (
+          <Text style={styles.buscaSemResultado}>
+            Nenhuma matéria encontrada pra "{buscaMateria}".
+          </Text>
+        ) : (
+          <View style={styles.grade}>
+            {materiasVisiveis.map((materia) => {
               const aulasDaMateria = aulasPorMateria.get(materia.id) ?? [];
               const aulaResumo =
                 aulasDaMateria.length > 0
@@ -339,7 +380,7 @@ export default function ProvasTrabalhosScreen() {
                       .join(' · ')
                   : null;
               return (
-                <MateriaChip
+                <MateriaCard
                   key={materia.id}
                   materia={materia}
                   media={mediasPorMateria.get(materia.id)?.media ?? null}
@@ -357,7 +398,7 @@ export default function ProvasTrabalhosScreen() {
               );
             })}
           </View>
-        </ScrollView>
+        )}
       </View>
     </View>
   );
@@ -565,9 +606,34 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  chips: {
+  busca: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+  },
+  buscaInput: {
+    flex: 1,
+    fontFamily: font.body,
+    fontSize: 14,
+    color: colors.ink,
+    padding: 0,
+  },
+  buscaSemResultado: {
+    fontFamily: font.body,
+    fontSize: 13,
+    color: colors.inkFaint,
+    paddingHorizontal: spacing.lg,
+  },
+  grade: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing.sm,
     paddingHorizontal: spacing.lg,
   },
