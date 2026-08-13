@@ -32,7 +32,7 @@ export function TarefasSection({
       <View style={styles.linhaInput}>
         <TextInput
           style={styles.input}
-          placeholder="Ex: Continuar o learncpp"
+          placeholder="Nova tarefa"
           value={novoTitulo}
           onChangeText={setNovoTitulo}
           onSubmitEditing={handleAdicionar}

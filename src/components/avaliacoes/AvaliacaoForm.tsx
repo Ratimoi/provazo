@@ -184,7 +184,7 @@ export function AvaliacaoForm({
       <Text style={styles.rotulo}>Título</Text>
       <TextInput
         style={styles.input}
-        placeholder="Ex: P1, Trabalho final…"
+        placeholder={valor.tipo === 'prova' ? 'Nova prova' : 'Novo trabalho'}
         value={valor.titulo}
         onChangeText={(v) => atualizar('titulo', v)}
       />

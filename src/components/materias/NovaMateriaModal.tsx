@@ -43,7 +43,7 @@ export function NovaMateriaModal({
       <Text style={styles.rotulo}>Nome</Text>
       <TextInput
         style={styles.input}
-        placeholder="Ex: Cálculo 2"
+        placeholder="Nova matéria"
         value={nome}
         onChangeText={setNome}
         autoFocus

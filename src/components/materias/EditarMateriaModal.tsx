@@ -46,7 +46,7 @@ export function EditarMateriaModal({
       <Text style={styles.rotulo}>Nome</Text>
       <TextInput
         style={styles.input}
-        placeholder="Ex: Cálculo 2"
+        placeholder="Nome da matéria"
         value={nome}
         onChangeText={setNome}
         autoFocus
