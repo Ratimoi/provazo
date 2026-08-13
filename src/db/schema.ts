@@ -38,6 +38,9 @@ export const materia = sqliteTable(
       .references(() => semestre.id, { onDelete: 'cascade' }),
     nome: text('nome').notNull(),
     corHex: text('cor_hex').notNull(),
+    // Livre (não é FK) — só pra diferenciar matérias de faculdades
+    // diferentes cursadas no mesmo período.
+    instituicao: text('instituicao'),
   },
   (table) => [
     unique('materia_semestre_nome_unique').on(table.semestreId, table.nome),

@@ -19,6 +19,7 @@ export type OcorrenciaRecorrente = {
   observacoes: string | null;
   materiaId?: number;
   materiaNome?: string;
+  materiaInstituicao?: string | null;
 };
 
 function diaDaSemana(dataIso: string): number {
@@ -40,6 +41,7 @@ const selecionarBase = () =>
       materiaId: eventoRecorrente.materiaId,
       materiaNome: materia.nome,
       materiaCorHex: materia.corHex,
+      materiaInstituicao: materia.instituicao,
     })
     .from(eventoRecorrente)
     .leftJoin(materia, eq(eventoRecorrente.materiaId, materia.id));
@@ -116,5 +118,6 @@ export function expandirEventosRecorrentesParaDia(
       observacoes: c.observacoes,
       materiaId: c.materiaId ?? undefined,
       materiaNome: c.materiaNome ?? undefined,
+      materiaInstituicao: c.materiaInstituicao,
     }));
 }

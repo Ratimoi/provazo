@@ -34,6 +34,7 @@ import {
 import {
   createMateria,
   deleteMateria,
+  listInstituicoesDistintas,
   Materia,
   updateMateria,
 } from '../../../src/domain/materias';
@@ -73,6 +74,7 @@ function agruparPorMateria(avaliacoes: AvaliacaoComMateria[]) {
   }
   return Array.from(grupos.entries()).map(([titulo, data]) => ({
     title: titulo,
+    instituicao: data[0]?.materiaInstituicao ?? null,
     data,
   }));
 }
@@ -137,6 +139,13 @@ export default function ProvasTrabalhosScreen() {
     return materias.filter((m) => normalizar(m.nome).includes(busca));
   }, [materias, buscaMateria]);
 
+  // Recalcula sempre que a lista de matérias muda (após criar/editar), pra
+  // sugerir instituições já usadas em qualquer semestre, não só o atual.
+  const instituicoesSugeridas = useMemo(
+    () => listInstituicoesDistintas(),
+    [materias],
+  );
+
   const avaliacoesFiltradas = useMemo(
     () =>
       materiaFiltroId
@@ -159,14 +168,22 @@ export default function ProvasTrabalhosScreen() {
   }
 
   const mutacaoMateria = useMutation({
-    mutationFn: ({ nome, corHex }: { nome: string; corHex: string | null }) => {
+    mutationFn: ({
+      nome,
+      corHex,
+      instituicao,
+    }: {
+      nome: string;
+      corHex: string | null;
+      instituicao: string | null;
+    }) => {
       const nomeLimpo = nome.trim();
       if (nomeLimpo.length === 0) {
         throw new Error('Dê um nome pra matéria.');
       }
       try {
         return Promise.resolve(
-          createMateria(semestre.id, nomeLimpo, corHex ?? undefined),
+          createMateria(semestre.id, nomeLimpo, corHex ?? undefined, instituicao),
         );
       } catch (e) {
         throw new Error(mensagemAmigavel(e) ?? 'Não foi possível salvar.');
@@ -185,10 +202,12 @@ export default function ProvasTrabalhosScreen() {
       id,
       nome,
       corHex,
+      instituicao,
     }: {
       id: number;
       nome: string;
       corHex: string;
+      instituicao: string | null;
     }) => {
       const nomeLimpo = nome.trim();
       if (nomeLimpo.length === 0) {
@@ -196,7 +215,7 @@ export default function ProvasTrabalhosScreen() {
       }
       try {
         return Promise.resolve(
-          updateMateria(id, { nome: nomeLimpo, corHex }),
+          updateMateria(id, { nome: nomeLimpo, corHex, instituicao }),
         );
       } catch (e) {
         throw new Error(mensagemAmigavel(e) ?? 'Não foi possível salvar.');
@@ -482,7 +501,10 @@ export default function ProvasTrabalhosScreen() {
           )
         }
         renderSectionHeader={({ section }) => (
-          <Text style={styles.secaoTituloMateria}>{section.title}</Text>
+          <Text style={styles.secaoTituloMateria}>
+            {section.title}
+            {section.instituicao ? ` · ${section.instituicao}` : ''}
+          </Text>
         )}
         renderItem={({ item }) => (
           <View style={styles.itemWrapper}>
@@ -508,8 +530,11 @@ export default function ProvasTrabalhosScreen() {
         visivel={modalMateriaAberto}
         salvando={mutacaoMateria.isPending}
         erro={mutacaoMateria.error?.message}
+        instituicoesSugeridas={instituicoesSugeridas}
         aoFechar={() => setModalMateriaAberto(false)}
-        aoSalvar={(nome, corHex) => mutacaoMateria.mutate({ nome, corHex })}
+        aoSalvar={(nome, corHex, instituicao) =>
+          mutacaoMateria.mutate({ nome, corHex, instituicao })
+        }
       />
       <NovaAulaModal
         visivel={modalAulaAberto}
@@ -557,10 +582,16 @@ export default function ProvasTrabalhosScreen() {
         materia={materiaEditando}
         salvando={mutacaoMateriaEditar.isPending}
         erro={mutacaoMateriaEditar.error?.message}
+        instituicoesSugeridas={instituicoesSugeridas}
         aoFechar={() => setMateriaEditando(null)}
-        aoSalvar={(nome, corHex) => {
+        aoSalvar={(nome, corHex, instituicao) => {
           if (!materiaEditando) return;
-          mutacaoMateriaEditar.mutate({ id: materiaEditando.id, nome, corHex });
+          mutacaoMateriaEditar.mutate({
+            id: materiaEditando.id,
+            nome,
+            corHex,
+            instituicao,
+          });
         }}
       />
       <ConfirmModal

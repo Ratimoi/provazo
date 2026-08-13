@@ -50,6 +50,14 @@ export function MateriaCard({
         ) : (
           media == null && <Text style={styles.semInfo}>Sem aula fixa</Text>
         )}
+        {materia.instituicao && (
+          <View style={styles.linhaAula}>
+            <Ionicons name="business-outline" size={11} color={colors.inkFaint} />
+            <Text style={styles.aulaTexto} numberOfLines={1}>
+              {materia.instituicao}
+            </Text>
+          </View>
+        )}
       </View>
       {media != null && (
         <View style={styles.mediaBadge}>

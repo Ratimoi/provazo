@@ -34,6 +34,12 @@ export function AgendaBloco({
     compromisso.tipo === 'prova' || compromisso.tipo === 'trabalho'
       ? ICONE_AVALIACAO[compromisso.tipo]
       : null;
+  // Deixa explícito de qual instituição é a aula, pra diferenciar matérias
+  // de faculdades diferentes cursadas ao mesmo tempo.
+  const instituicaoInicial =
+    compromisso.tipo === 'aula' && compromisso.instituicao
+      ? compromisso.instituicao.trim().charAt(0).toUpperCase()
+      : null;
 
   return (
     <Pressable
@@ -52,6 +58,13 @@ export function AgendaBloco({
     >
       <View style={styles.linhaTitulo}>
         {icone && <Ionicons name={icone} size={11} color={corTexto} />}
+        {instituicaoInicial && (
+          <View style={[styles.badgeInstituicao, { borderColor: corTexto }]}>
+            <Text style={[styles.badgeInstituicaoTexto, { color: corTexto }]}>
+              {instituicaoInicial}
+            </Text>
+          </View>
+        )}
         <Text
           style={[styles.titulo, { color: corTexto }]}
           numberOfLines={compacto ? 1 : 2}
@@ -93,6 +106,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+  },
+  badgeInstituicao: {
+    width: 12,
+    height: 12,
+    borderRadius: 3,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeInstituicaoTexto: {
+    fontFamily: font.bodySemibold,
+    fontSize: 8,
+    lineHeight: 9,
   },
   titulo: {
     flexShrink: 1,

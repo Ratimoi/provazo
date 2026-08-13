@@ -1,0 +1,1 @@
+ALTER TABLE `materia` ADD `instituicao` text;
