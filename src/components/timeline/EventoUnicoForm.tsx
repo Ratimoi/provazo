@@ -30,6 +30,16 @@ const OPCOES_REPETICAO: { valor: Repeticao; rotulo: string }[] = [
   { valor: 'anual', rotulo: 'Todo ano' },
 ];
 
+const DIAS = [
+  { valor: 1, rotulo: 'Seg' },
+  { valor: 2, rotulo: 'Ter' },
+  { valor: 3, rotulo: 'Qua' },
+  { valor: 4, rotulo: 'Qui' },
+  { valor: 5, rotulo: 'Sex' },
+  { valor: 6, rotulo: 'Sáb' },
+  { valor: 0, rotulo: 'Dom' },
+];
+
 export type ValorFormularioEvento = {
   titulo: string;
   data: string;
@@ -51,7 +61,11 @@ export function EventoUnicoForm({
   rotuloBotao?: string;
   /** Mostra o seletor "Repetir" — só faz sentido ao criar um compromisso novo. */
   permiteRepetir?: boolean;
-  aoSalvar: (dados: NovoEventoUnico, repeticao: Repeticao) => void;
+  aoSalvar: (
+    dados: NovoEventoUnico,
+    repeticao: Repeticao,
+    diasSemana: number[],
+  ) => void;
 }) {
   const [valor, setValor] = useState<ValorFormularioEvento>({
     titulo: '',
@@ -64,6 +78,7 @@ export function EventoUnicoForm({
   });
   const [erro, setErro] = useState<string | null>(null);
   const [repeticao, setRepeticao] = useState<Repeticao>('nunca');
+  const [diasSemana, setDiasSemana] = useState<number[]>([]);
 
   function atualizar<K extends keyof ValorFormularioEvento>(
     campo: K,
@@ -72,12 +87,23 @@ export function EventoUnicoForm({
     setValor((atual) => ({ ...atual, [campo]: novoValor }));
   }
 
+  function alternarDia(dia: number) {
+    setDiasSemana((atual) =>
+      atual.includes(dia) ? atual.filter((d) => d !== dia) : [...atual, dia],
+    );
+  }
+
   function handleSalvar() {
     if (valor.titulo.trim().length === 0) {
       setErro('Dê um título pra esse compromisso.');
       return;
     }
-    if (!REGEX_DATA.test(valor.data)) {
+    if (repeticao === 'semanal') {
+      if (diasSemana.length === 0) {
+        setErro('Escolha pelo menos um dia da semana.');
+        return;
+      }
+    } else if (!REGEX_DATA.test(valor.data)) {
       setErro('Data inválida — use o formato AAAA-MM-DD.');
       return;
     }
@@ -100,6 +126,7 @@ export function EventoUnicoForm({
         observacoes: valor.observacoes.trim() || null,
       },
       repeticao,
+      diasSemana,
     );
   }
 
@@ -120,32 +147,6 @@ export function EventoUnicoForm({
         onChangeText={(v) => atualizar('titulo', v)}
         autoFocus
       />
-
-      <Text style={styles.rotulo}>Data</Text>
-      <DataInput
-        style={styles.input}
-        value={valor.data}
-        onChangeText={(v) => atualizar('data', v)}
-      />
-
-      <View style={styles.linha}>
-        <View style={styles.metade}>
-          <Text style={styles.rotulo}>Início</Text>
-          <HoraInput
-            style={styles.input}
-            value={valor.horaInicio}
-            onChangeText={(v) => atualizar('horaInicio', v)}
-          />
-        </View>
-        <View style={styles.metade}>
-          <Text style={styles.rotulo}>Fim (opcional)</Text>
-          <HoraInput
-            style={styles.input}
-            value={valor.horaFim}
-            onChangeText={(v) => atualizar('horaFim', v)}
-          />
-        </View>
-      </View>
 
       {permiteRepetir && (
         <>
@@ -173,6 +174,61 @@ export function EventoUnicoForm({
           </View>
         </>
       )}
+
+      {repeticao === 'semanal' ? (
+        <>
+          <Text style={styles.rotulo}>Dias da semana</Text>
+          <View style={styles.chips}>
+            {DIAS.map((d) => {
+              const selecionado = diasSemana.includes(d.valor);
+              return (
+                <Pressable
+                  key={d.valor}
+                  onPress={() => alternarDia(d.valor)}
+                  style={[styles.chip, selecionado && styles.chipAtivoNeutro]}
+                >
+                  <Text
+                    style={[
+                      styles.chipTexto,
+                      selecionado && styles.chipTextoAtivo,
+                    ]}
+                  >
+                    {d.rotulo}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </>
+      ) : (
+        <>
+          <Text style={styles.rotulo}>Data</Text>
+          <DataInput
+            style={styles.input}
+            value={valor.data}
+            onChangeText={(v) => atualizar('data', v)}
+          />
+        </>
+      )}
+
+      <View style={styles.linha}>
+        <View style={styles.metade}>
+          <Text style={styles.rotulo}>Início</Text>
+          <HoraInput
+            style={styles.input}
+            value={valor.horaInicio}
+            onChangeText={(v) => atualizar('horaInicio', v)}
+          />
+        </View>
+        <View style={styles.metade}>
+          <Text style={styles.rotulo}>Fim (opcional)</Text>
+          <HoraInput
+            style={styles.input}
+            value={valor.horaFim}
+            onChangeText={(v) => atualizar('horaFim', v)}
+          />
+        </View>
+      </View>
 
       <Text style={styles.rotulo}>Observações (opcional)</Text>
       <TextInput
