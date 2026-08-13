@@ -177,7 +177,7 @@ export function EventoUnicoForm({
       <Text style={styles.rotulo}>Observações (opcional)</Text>
       <TextInput
         style={[styles.input, styles.textoMultilinha]}
-        placeholder="Ex: sala 204, levar o notebook…"
+        placeholder="Observações"
         value={valor.observacoes}
         onChangeText={(v) => atualizar('observacoes', v)}
         multiline

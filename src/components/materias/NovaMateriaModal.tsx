@@ -76,7 +76,7 @@ export function NovaMateriaModal({
       <Text style={styles.rotulo}>Instituição (opcional)</Text>
       <TextInput
         style={styles.input}
-        placeholder="Ex: USP, Uninove…"
+        placeholder="Nova instituição"
         value={instituicao}
         onChangeText={setInstituicao}
       />
