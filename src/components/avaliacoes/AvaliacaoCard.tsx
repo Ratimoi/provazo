@@ -32,7 +32,10 @@ export function AvaliacaoCard({
       />
       <View style={styles.corpo}>
         <View style={styles.linhaTopo}>
-          <Text style={styles.materia}>{avaliacao.materiaNome}</Text>
+          <Text style={styles.materia} numberOfLines={1}>
+            {avaliacao.materiaNome}
+            {avaliacao.materiaInstituicao ? ` · ${avaliacao.materiaInstituicao}` : ''}
+          </Text>
           <View style={[styles.badge, { backgroundColor: `${corTipo}17` }]}>
             <Text style={[styles.badgeTexto, { color: corTipo }]}>
               {ROTULO_TIPO[avaliacao.tipo]}
@@ -91,8 +94,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: spacing.sm,
   },
   materia: {
+    flexShrink: 1,
     fontFamily: font.bodySemibold,
     fontSize: 11.5,
     color: colors.inkSoft,

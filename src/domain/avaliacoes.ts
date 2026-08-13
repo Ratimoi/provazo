@@ -11,6 +11,7 @@ export type NovaAvaliacao = Omit<
 export type AvaliacaoComMateria = Avaliacao & {
   materiaNome: string;
   materiaCorHex: string;
+  materiaInstituicao: string | null;
 };
 
 function validarPeso(peso: number) {
@@ -46,6 +47,7 @@ function selecionarComMateria() {
       updatedAt: avaliacao.updatedAt,
       materiaNome: materia.nome,
       materiaCorHex: materia.corHex,
+      materiaInstituicao: materia.instituicao,
     })
     .from(avaliacao)
     .innerJoin(materia, eq(avaliacao.materiaId, materia.id));

@@ -10,6 +10,7 @@ export function EditarMateriaModal({
   materia,
   salvando,
   erro,
+  instituicoesSugeridas = [],
   aoFechar,
   aoSalvar,
 }: {
@@ -17,11 +18,14 @@ export function EditarMateriaModal({
   materia: Materia | null;
   salvando?: boolean;
   erro?: string | null;
+  /** Instituições já usadas em outras matérias, pra reaproveitar em vez de retitar. */
+  instituicoesSugeridas?: string[];
   aoFechar: () => void;
-  aoSalvar: (nome: string, corHex: string) => void;
+  aoSalvar: (nome: string, corHex: string, instituicao: string | null) => void;
 }) {
   const [nome, setNome] = useState('');
   const [corSelecionada, setCorSelecionada] = useState<string | null>(null);
+  const [instituicao, setInstituicao] = useState('');
 
   // Toda abertura reflete a matéria atual, independente de como a anterior
   // terminou (mesmo cuidado do NovaMateriaModal).
@@ -29,6 +33,7 @@ export function EditarMateriaModal({
     if (visivel && materia) {
       setNome(materia.nome);
       setCorSelecionada(materia.corHex);
+      setInstituicao(materia.instituicao ?? '');
     }
   }, [visivel, materia]);
 
@@ -67,11 +72,48 @@ export function EditarMateriaModal({
         ))}
       </View>
 
+      <Text style={styles.rotulo}>Instituição (opcional)</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Ex: USP, Uninove…"
+        value={instituicao}
+        onChangeText={setInstituicao}
+      />
+      {instituicoesSugeridas.length > 0 && (
+        <View style={styles.chipsInstituicao}>
+          {instituicoesSugeridas.map((sugestao) => (
+            <Pressable
+              key={sugestao}
+              onPress={() => setInstituicao(sugestao)}
+              style={[
+                styles.chip,
+                instituicao === sugestao && styles.chipAtivo,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.chipTexto,
+                  instituicao === sugestao && styles.chipTextoAtivo,
+                ]}
+              >
+                {sugestao}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
+
       {erro && <Text style={styles.erro}>{erro}</Text>}
 
       <Pressable
         style={styles.botaoSalvar}
-        onPress={() => aoSalvar(nome, corSelecionada ?? materia.corHex)}
+        onPress={() =>
+          aoSalvar(
+            nome,
+            corSelecionada ?? materia.corHex,
+            instituicao.trim() || null,
+          )
+        }
         disabled={salvando}
       >
         <Text style={styles.botaoSalvarTexto}>
@@ -133,6 +175,32 @@ const styles = StyleSheet.create({
   },
   corSwatchSelecionada: {
     borderColor: colors.ink,
+  },
+  chipsInstituicao: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  chip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm - 2,
+    borderRadius: radii.full,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+  },
+  chipAtivo: {
+    backgroundColor: colors.brand,
+    borderColor: colors.brand,
+  },
+  chipTexto: {
+    fontFamily: font.bodyMedium,
+    fontSize: 13,
+    color: colors.ink,
+  },
+  chipTextoAtivo: {
+    color: colors.surface,
   },
   erro: {
     fontFamily: font.bodyMedium,

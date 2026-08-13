@@ -46,6 +46,7 @@ export function createMateria(
   semestreId: number,
   nome: string,
   corHex?: string,
+  instituicao?: string | null,
 ): Materia {
   return db
     .insert(materia)
@@ -53,14 +54,27 @@ export function createMateria(
       semestreId,
       nome,
       corHex: corHex ?? proximaCorDaPaleta(semestreId),
+      instituicao: instituicao ?? null,
     })
     .returning()
     .get();
 }
 
+/** Instituições já usadas em algum semestre, pra sugerir nos formulários. */
+export function listInstituicoesDistintas(): string[] {
+  const linhas = db
+    .selectDistinct({ instituicao: materia.instituicao })
+    .from(materia)
+    .orderBy(asc(materia.instituicao))
+    .all();
+  return linhas
+    .map((l) => l.instituicao)
+    .filter((v): v is string => v != null && v.trim().length > 0);
+}
+
 export function updateMateria(
   id: number,
-  dados: Partial<Pick<Materia, 'nome' | 'corHex'>>,
+  dados: Partial<Pick<Materia, 'nome' | 'corHex' | 'instituicao'>>,
 ): Materia {
   return db
     .update(materia)

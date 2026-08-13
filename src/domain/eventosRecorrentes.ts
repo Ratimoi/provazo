@@ -34,6 +34,7 @@ export type Aula = {
   materiaId: number;
   materiaNome: string;
   materiaCorHex: string;
+  materiaInstituicao: string | null;
   horaInicio: string;
   horaFim: string | null;
   observacoes: string | null;
@@ -52,6 +53,7 @@ export function listAulasPorSemestre(semestreId: number): Aula[] {
       observacoes: eventoRecorrente.observacoes,
       materiaNome: materia.nome,
       materiaCorHex: materia.corHex,
+      materiaInstituicao: materia.instituicao,
     })
     .from(eventoRecorrente)
     .innerJoin(materia, eq(eventoRecorrente.materiaId, materia.id))
@@ -129,7 +131,11 @@ export function createAula(dados: NovaAula): Aula {
   }
 
   const materiaVinculada = db
-    .select({ nome: materia.nome, corHex: materia.corHex })
+    .select({
+      nome: materia.nome,
+      corHex: materia.corHex,
+      instituicao: materia.instituicao,
+    })
     .from(materia)
     .where(eq(materia.id, dados.materiaId))
     .get()!;
@@ -140,6 +146,7 @@ export function createAula(dados: NovaAula): Aula {
     materiaId: dados.materiaId,
     materiaNome: materiaVinculada.nome,
     materiaCorHex: materiaVinculada.corHex,
+    materiaInstituicao: materiaVinculada.instituicao,
     horaInicio: evento.horaInicio,
     horaFim: evento.horaFim,
     observacoes: evento.observacoes,
@@ -176,7 +183,11 @@ export function updateAula(id: number, dados: NovaAula): Aula {
   }
 
   const materiaVinculada = db
-    .select({ nome: materia.nome, corHex: materia.corHex })
+    .select({
+      nome: materia.nome,
+      corHex: materia.corHex,
+      instituicao: materia.instituicao,
+    })
     .from(materia)
     .where(eq(materia.id, dados.materiaId))
     .get()!;
@@ -187,6 +198,7 @@ export function updateAula(id: number, dados: NovaAula): Aula {
     materiaId: dados.materiaId,
     materiaNome: materiaVinculada.nome,
     materiaCorHex: materiaVinculada.corHex,
+    materiaInstituicao: materiaVinculada.instituicao,
     horaInicio: evento.horaInicio,
     horaFim: evento.horaFim,
     observacoes: evento.observacoes,
