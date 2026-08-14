@@ -123,6 +123,7 @@ export default function ProvasTrabalhosScreen() {
   const [confirmExcluirAula, setConfirmExcluirAula] = useState<Aula | null>(
     null,
   );
+  const [materiasExpandido, setMateriasExpandido] = useState(false);
 
   const mediasPorMateria = useMemo(
     () => new Map(medias.map((m) => [m.materiaId, m])),
@@ -147,6 +148,14 @@ export default function ProvasTrabalhosScreen() {
         (m.instituicao && normalizar(m.instituicao).includes(busca)),
     );
   }, [materias, buscaMateria]);
+
+  // Colapsada por padrão com muitas matérias, pra não tomar a tela toda —
+  // busca ativa sempre mostra tudo que bate, sem essa limitação.
+  const materiasParaExibir =
+    materiasExpandido || buscaMateria.length > 0
+      ? materiasVisiveis
+      : materiasVisiveis.slice(0, LIMIAR_BUSCA_MATERIAS);
+  const materiasEscondidas = materiasVisiveis.length - materiasParaExibir.length;
 
   // Recalcula sempre que a lista de matérias muda (após criar/editar), pra
   // sugerir instituições já usadas em qualquer semestre, não só o atual.
@@ -425,7 +434,7 @@ export default function ProvasTrabalhosScreen() {
           </Text>
         ) : (
           <View style={styles.grade}>
-            {materiasVisiveis.map((materia) => {
+            {materiasParaExibir.map((materia) => {
               const aulasDaMateria = aulasPorMateria.get(materia.id) ?? [];
               const aulaResumo =
                 aulasDaMateria.length > 0
@@ -452,6 +461,19 @@ export default function ProvasTrabalhosScreen() {
               );
             })}
           </View>
+        )}
+
+        {materiasEscondidas > 0 && (
+          <Pressable
+            style={styles.verMais}
+            onPress={() => setMateriasExpandido(true)}
+          >
+            <Text style={styles.verMaisTexto}>
+              Ver mais {materiasEscondidas} matéria
+              {materiasEscondidas === 1 ? '' : 's'}
+            </Text>
+            <Ionicons name="chevron-down" size={14} color={colors.brand} />
+          </Pressable>
         )}
       </View>
     </View>
@@ -733,6 +755,19 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: spacing.sm,
     paddingHorizontal: spacing.lg,
+  },
+  verMais: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    marginTop: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  verMaisTexto: {
+    fontFamily: font.bodySemibold,
+    fontSize: 13,
+    color: colors.brand,
   },
   lista: {
     paddingBottom: 48,

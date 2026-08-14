@@ -20,6 +20,12 @@ export function MateriaCard({
   onLongPress: () => void;
 }) {
   const inicial = materia.nome.trim().charAt(0).toUpperCase();
+  // Aula e instituição juntas numa linha só — separadas, o cartão ficava alto
+  // demais quando as duas existiam, e a grade toda ficava muito extensa.
+  const detalhe =
+    aulaResumo && materia.instituicao
+      ? `${aulaResumo} · ${materia.instituicao}`
+      : (aulaResumo ?? materia.instituicao);
 
   return (
     <Pressable
@@ -40,23 +46,19 @@ export function MateriaCard({
         <Text style={styles.nome} numberOfLines={1}>
           {materia.nome}
         </Text>
-        {aulaResumo ? (
+        {detalhe ? (
           <View style={styles.linhaAula}>
-            <Ionicons name="time-outline" size={11} color={colors.inkFaint} />
+            <Ionicons
+              name={aulaResumo ? 'time-outline' : 'business-outline'}
+              size={11}
+              color={colors.inkFaint}
+            />
             <Text style={styles.aulaTexto} numberOfLines={1}>
-              {aulaResumo}
+              {detalhe}
             </Text>
           </View>
         ) : (
           media == null && <Text style={styles.semInfo}>Sem aula fixa</Text>
-        )}
-        {materia.instituicao && (
-          <View style={styles.linhaAula}>
-            <Ionicons name="business-outline" size={11} color={colors.inkFaint} />
-            <Text style={styles.aulaTexto} numberOfLines={1}>
-              {materia.instituicao}
-            </Text>
-          </View>
         )}
       </View>
       {media != null && (
