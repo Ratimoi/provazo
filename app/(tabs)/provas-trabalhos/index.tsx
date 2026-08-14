@@ -475,6 +475,18 @@ export default function ProvasTrabalhosScreen() {
             <Ionicons name="chevron-down" size={14} color={colors.brand} />
           </Pressable>
         )}
+
+        {materiasExpandido &&
+          buscaMateria.length === 0 &&
+          materiasVisiveis.length > LIMIAR_BUSCA_MATERIAS && (
+            <Pressable
+              style={styles.verMais}
+              onPress={() => setMateriasExpandido(false)}
+            >
+              <Text style={styles.verMaisTexto}>Ocultar</Text>
+              <Ionicons name="chevron-up" size={14} color={colors.brand} />
+            </Pressable>
+          )}
       </View>
     </View>
   );
