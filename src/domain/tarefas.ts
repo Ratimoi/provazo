@@ -22,6 +22,18 @@ export function createTarefa(titulo: string, observacoes?: string | null): Taref
     .get();
 }
 
+export function updateTarefa(
+  id: number,
+  dados: { titulo: string; observacoes: string | null },
+): Tarefa {
+  return db
+    .update(tarefa)
+    .set(dados)
+    .where(eq(tarefa.id, id))
+    .returning()
+    .get();
+}
+
 export function toggleTarefaConcluida(id: number, concluida: boolean): Tarefa {
   return db
     .update(tarefa)

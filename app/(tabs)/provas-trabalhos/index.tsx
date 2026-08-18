@@ -22,6 +22,7 @@ import { EditarMateriaModal } from '../../../src/components/materias/EditarMater
 import { MateriaAcoesModal } from '../../../src/components/materias/MateriaAcoesModal';
 import { MateriaCard } from '../../../src/components/materias/MateriaCard';
 import { NovaMateriaModal } from '../../../src/components/materias/NovaMateriaModal';
+import { EditarTarefaModal } from '../../../src/components/tarefas/EditarTarefaModal';
 import { TarefasSection } from '../../../src/components/tarefas/TarefasSection';
 import { ConfirmModal } from '../../../src/components/ui/ConfirmModal';
 import type { AvaliacaoComMateria } from '../../../src/domain/avaliacoes';
@@ -44,6 +45,8 @@ import {
   createTarefa,
   deleteTarefa,
   toggleTarefaConcluida,
+  updateTarefa,
+  type Tarefa,
 } from '../../../src/domain/tarefas';
 import { aulasQueryKey, useAulasPorSemestre } from '../../../src/hooks/useAulas';
 import {
@@ -124,6 +127,7 @@ export default function ProvasTrabalhosScreen() {
     null,
   );
   const [materiasExpandido, setMateriasExpandido] = useState(false);
+  const [tarefaEditando, setTarefaEditando] = useState<Tarefa | null>(null);
 
   const mediasPorMateria = useMemo(
     () => new Map(medias.map((m) => [m.materiaId, m])),
@@ -303,6 +307,19 @@ export default function ProvasTrabalhosScreen() {
     mutationFn: (id: number) => Promise.resolve(deleteTarefa(id)),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: TAREFAS_QUERY_KEY }),
+  });
+  const mutacaoTarefaEditar = useMutation({
+    mutationFn: ({
+      id,
+      dados,
+    }: {
+      id: number;
+      dados: { titulo: string; observacoes: string | null };
+    }) => Promise.resolve(updateTarefa(id, dados)),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: TAREFAS_QUERY_KEY });
+      setTarefaEditando(null);
+    },
   });
 
   function abrirModalMateria() {
@@ -512,6 +529,7 @@ export default function ProvasTrabalhosScreen() {
                 mutacaoTarefaAlternar.mutate({ id, concluida })
               }
               aoExcluir={(id) => mutacaoTarefaExcluir.mutate(id)}
+              aoEditar={(tarefa) => setTarefaEditando(tarefa)}
             />
           </View>
         }
@@ -664,6 +682,16 @@ export default function ProvasTrabalhosScreen() {
         destrutivo
         aoConfirmar={confirmarExclusaoAula}
         aoCancelar={() => setConfirmExcluirAula(null)}
+      />
+      <EditarTarefaModal
+        visivel={tarefaEditando !== null}
+        tarefa={tarefaEditando}
+        salvando={mutacaoTarefaEditar.isPending}
+        aoFechar={() => setTarefaEditando(null)}
+        aoSalvar={(dados) => {
+          if (!tarefaEditando) return;
+          mutacaoTarefaEditar.mutate({ id: tarefaEditando.id, dados });
+        }}
       />
     </SafeAreaView>
   );

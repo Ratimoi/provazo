@@ -46,7 +46,10 @@ export default function ConfiguracoesScreen() {
 
   function atualizarTudo() {
     setVersao((v) => v + 1);
-    queryClient.invalidateQueries();
+    // refetchType: 'all' (não só 'active', o padrão) — sem isso, telas de
+    // outras abas que ficam montadas em segundo plano só atualizavam depois
+    // de fechar e abrir o app de novo.
+    queryClient.invalidateQueries({ refetchType: 'all' });
   }
 
   function handleApagarAvaliacoesAntigas(dataCorte: string) {
