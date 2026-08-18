@@ -10,11 +10,13 @@ export function TarefasSection({
   aoCriar,
   aoAlternar,
   aoExcluir,
+  aoEditar,
 }: {
   tarefas: Tarefa[];
   aoCriar: (titulo: string) => void;
   aoAlternar: (id: number, concluida: boolean) => void;
   aoExcluir: (id: number) => void;
+  aoEditar: (tarefa: Tarefa) => void;
 }) {
   const [novoTitulo, setNovoTitulo] = useState('');
 
@@ -24,6 +26,9 @@ export function TarefasSection({
     aoCriar(titulo);
     setNovoTitulo('');
   }
+
+  const pendentes = tarefas.filter((t) => !t.concluida);
+  const concluidas = tarefas.filter((t) => t.concluida);
 
   return (
     <View style={styles.container}>
@@ -52,37 +57,81 @@ export function TarefasSection({
       {tarefas.length === 0 ? (
         <Text style={styles.vazioTexto}>Nenhuma tarefa por aqui.</Text>
       ) : (
-        <View style={styles.lista}>
-          {tarefas.map((tarefa) => (
-            <View key={tarefa.id} style={styles.item}>
-              <Pressable
-                hitSlop={8}
-                onPress={() => aoAlternar(tarefa.id, !tarefa.concluida)}
-                style={[
-                  styles.checkbox,
-                  tarefa.concluida && styles.checkboxMarcado,
-                ]}
-              >
-                {tarefa.concluida && (
-                  <Ionicons name="checkmark" size={14} color={colors.surface} />
-                )}
-              </Pressable>
-              <Text
-                style={[
-                  styles.itemTexto,
-                  tarefa.concluida && styles.itemTextoConcluido,
-                ]}
-              >
-                {tarefa.titulo}
-              </Text>
-              <Pressable hitSlop={8} onPress={() => aoExcluir(tarefa.id)}>
-                <Ionicons name="close" size={16} color={colors.inkFaint} />
-              </Pressable>
+        <>
+          {pendentes.length > 0 && (
+            <View style={styles.lista}>
+              {pendentes.map((tarefa) => (
+                <ItemTarefa
+                  key={tarefa.id}
+                  tarefa={tarefa}
+                  aoAlternar={aoAlternar}
+                  aoExcluir={aoExcluir}
+                  aoEditar={aoEditar}
+                />
+              ))}
             </View>
-          ))}
-        </View>
+          )}
+
+          {concluidas.length > 0 && (
+            <>
+              <Text style={styles.concluidasLabel}>
+                Concluídas · {concluidas.length}
+              </Text>
+              <View style={styles.lista}>
+                {concluidas.map((tarefa) => (
+                  <ItemTarefa
+                    key={tarefa.id}
+                    tarefa={tarefa}
+                    aoAlternar={aoAlternar}
+                    aoExcluir={aoExcluir}
+                    aoEditar={aoEditar}
+                  />
+                ))}
+              </View>
+            </>
+          )}
+        </>
       )}
     </View>
+  );
+}
+
+function ItemTarefa({
+  tarefa,
+  aoAlternar,
+  aoExcluir,
+  aoEditar,
+}: {
+  tarefa: Tarefa;
+  aoAlternar: (id: number, concluida: boolean) => void;
+  aoExcluir: (id: number) => void;
+  aoEditar: (tarefa: Tarefa) => void;
+}) {
+  return (
+    <Pressable
+      style={({ pressed }) => [styles.item, pressed && styles.itemPressed]}
+      onLongPress={() => aoEditar(tarefa)}
+      delayLongPress={350}
+    >
+      <Pressable
+        hitSlop={8}
+        onPress={() => aoAlternar(tarefa.id, !tarefa.concluida)}
+        style={[styles.checkbox, tarefa.concluida && styles.checkboxMarcado]}
+      >
+        {tarefa.concluida && (
+          <Ionicons name="checkmark" size={14} color={colors.surface} />
+        )}
+      </Pressable>
+      <Text
+        style={[styles.itemTexto, tarefa.concluida && styles.itemTextoConcluido]}
+        numberOfLines={1}
+      >
+        {tarefa.titulo}
+      </Text>
+      <Pressable hitSlop={8} onPress={() => aoExcluir(tarefa.id)}>
+        <Ionicons name="close" size={16} color={colors.inkFaint} />
+      </Pressable>
+    </Pressable>
   );
 }
 
@@ -129,6 +178,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.inkFaint,
   },
+  concluidasLabel: {
+    fontFamily: font.bodySemibold,
+    fontSize: 11,
+    color: colors.inkFaint,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginTop: spacing.xs,
+  },
   lista: {
     gap: spacing.xs,
   },
@@ -141,6 +198,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm + 2,
     ...shadow.card,
+  },
+  itemPressed: {
+    opacity: 0.7,
   },
   checkbox: {
     width: 20,
