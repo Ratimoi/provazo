@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -6,26 +6,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AvaliacaoForm } from '../../../src/components/avaliacoes/AvaliacaoForm';
 import { createAvaliacao, NovaAvaliacao } from '../../../src/domain/avaliacoes';
 import { useMateriasPorSemestre } from '../../../src/hooks/useMaterias';
-import { avaliacoesQueryKey } from '../../../src/hooks/useAvaliacoes';
-import { mediasQueryKey } from '../../../src/hooks/useMediasPorMateria';
 import { colors, font } from '../../../src/theme/tokens';
 
 export default function NovaAvaliacaoScreen() {
   const { semestreId } = useLocalSearchParams<{ semestreId: string }>();
   const semestreIdNum = Number(semestreId);
-  const queryClient = useQueryClient();
 
   const { data: materias = [] } = useMateriasPorSemestre(semestreIdNum);
 
   const mutacao = useMutation({
     mutationFn: (dados: NovaAvaliacao) => Promise.resolve(createAvaliacao(dados)),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: avaliacoesQueryKey(semestreIdNum),
-      });
-      queryClient.invalidateQueries({ queryKey: mediasQueryKey(semestreIdNum) });
-      router.back();
-    },
+    onSuccess: () => router.back(),
   });
 
   if (materias.length === 0) {

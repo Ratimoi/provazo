@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
@@ -48,15 +48,12 @@ import {
   updateTarefa,
   type Tarefa,
 } from '../../../src/domain/tarefas';
-import { aulasQueryKey, useAulasPorSemestre } from '../../../src/hooks/useAulas';
-import {
-  avaliacoesQueryKey,
-  useAvaliacoesPorSemestre,
-} from '../../../src/hooks/useAvaliacoes';
-import { materiasQueryKey, useMateriasPorSemestre } from '../../../src/hooks/useMaterias';
-import { mediasQueryKey, useMediasPorMateria } from '../../../src/hooks/useMediasPorMateria';
+import { useAulasPorSemestre } from '../../../src/hooks/useAulas';
+import { useAvaliacoesPorSemestre } from '../../../src/hooks/useAvaliacoes';
+import { useMateriasPorSemestre } from '../../../src/hooks/useMaterias';
+import { useMediasPorMateria } from '../../../src/hooks/useMediasPorMateria';
 import { useSemestreSelecionado } from '../../../src/hooks/useSemestreSelecionado';
-import { TAREFAS_QUERY_KEY, useTarefas } from '../../../src/hooks/useTarefas';
+import { useTarefas } from '../../../src/hooks/useTarefas';
 import { colors, font, radii, shadow, spacing } from '../../../src/theme/tokens';
 
 const LIMIAR_BUSCA_MATERIAS = 6;
@@ -100,7 +97,6 @@ function mensagemAmigavel(erro: unknown): string | undefined {
 export default function ProvasTrabalhosScreen() {
   const { selecionado, semestre, irParaAnterior, irParaProximo } =
     useSemestreSelecionado();
-  const queryClient = useQueryClient();
 
   const { data: materias = [] } = useMateriasPorSemestre(semestre.id);
   const { data: avaliacoes = [] } = useAvaliacoesPorSemestre(semestre.id);
@@ -180,15 +176,6 @@ export default function ProvasTrabalhosScreen() {
     [avaliacoesFiltradas],
   );
 
-  function invalidarTudoDoSemestre() {
-    queryClient.invalidateQueries({ queryKey: materiasQueryKey(semestre.id) });
-    queryClient.invalidateQueries({
-      queryKey: avaliacoesQueryKey(semestre.id),
-    });
-    queryClient.invalidateQueries({ queryKey: mediasQueryKey(semestre.id) });
-    queryClient.invalidateQueries({ queryKey: aulasQueryKey(semestre.id) });
-  }
-
   const mutacaoMateria = useMutation({
     mutationFn: ({
       nome,
@@ -211,12 +198,7 @@ export default function ProvasTrabalhosScreen() {
         throw new Error(mensagemAmigavel(e) ?? 'Não foi possível salvar.');
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: materiasQueryKey(semestre.id),
-      });
-      setModalMateriaAberto(false);
-    },
+    onSuccess: () => setModalMateriaAberto(false),
   });
 
   const mutacaoMateriaEditar = useMutation({
@@ -243,18 +225,13 @@ export default function ProvasTrabalhosScreen() {
         throw new Error(mensagemAmigavel(e) ?? 'Não foi possível salvar.');
       }
     },
-    onSuccess: () => {
-      invalidarTudoDoSemestre();
-      setMateriaEditando(null);
-    },
+    onSuccess: () => setMateriaEditando(null),
   });
 
   const mutacaoMateriaExcluir = useMutation({
     mutationFn: (id: number) => Promise.resolve(deleteMateria(id)),
-    onSuccess: (_resultado, id) => {
-      invalidarTudoDoSemestre();
-      setMateriaFiltroId((atual) => (atual === id ? null : atual));
-    },
+    onSuccess: (_resultado, id) =>
+      setMateriaFiltroId((atual) => (atual === id ? null : atual)),
   });
 
   const mutacaoAula = useMutation({
@@ -265,10 +242,7 @@ export default function ProvasTrabalhosScreen() {
         throw new Error(mensagemAmigavel(e) ?? 'Não foi possível salvar.');
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: aulasQueryKey(semestre.id) });
-      setModalAulaAberto(false);
-    },
+    onSuccess: () => setModalAulaAberto(false),
   });
 
   const mutacaoAulaEditar = useMutation({
@@ -279,34 +253,22 @@ export default function ProvasTrabalhosScreen() {
         throw new Error(mensagemAmigavel(e) ?? 'Não foi possível salvar.');
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: aulasQueryKey(semestre.id) });
-      setAulaEditando(null);
-    },
+    onSuccess: () => setAulaEditando(null),
   });
 
   const mutacaoAulaExcluir = useMutation({
     mutationFn: (id: number) => Promise.resolve(deleteAula(id)),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: aulasQueryKey(semestre.id) });
-    },
   });
 
   const mutacaoTarefaCriar = useMutation({
     mutationFn: (titulo: string) => Promise.resolve(createTarefa(titulo)),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: TAREFAS_QUERY_KEY }),
   });
   const mutacaoTarefaAlternar = useMutation({
     mutationFn: ({ id, concluida }: { id: number; concluida: boolean }) =>
       Promise.resolve(toggleTarefaConcluida(id, concluida)),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: TAREFAS_QUERY_KEY }),
   });
   const mutacaoTarefaExcluir = useMutation({
     mutationFn: (id: number) => Promise.resolve(deleteTarefa(id)),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: TAREFAS_QUERY_KEY }),
   });
   const mutacaoTarefaEditar = useMutation({
     mutationFn: ({
@@ -316,10 +278,7 @@ export default function ProvasTrabalhosScreen() {
       id: number;
       dados: { titulo: string; observacoes: string | null };
     }) => Promise.resolve(updateTarefa(id, dados)),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: TAREFAS_QUERY_KEY });
-      setTarefaEditando(null);
-    },
+    onSuccess: () => setTarefaEditando(null),
   });
 
   function abrirModalMateria() {

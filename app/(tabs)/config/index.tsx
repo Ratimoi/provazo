@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useQueryClient } from '@tanstack/react-query';
 import Constants from 'expo-constants';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
@@ -31,7 +30,6 @@ const ROTULOS_RESUMO: { chave: keyof ReturnType<typeof contarDados>; rotulo: str
 ];
 
 export default function ConfiguracoesScreen() {
-  const queryClient = useQueryClient();
   const [versao, setVersao] = useState(0);
 
   const resumo = useMemo(() => contarDados(), [versao]);
@@ -54,12 +52,10 @@ export default function ConfiguracoesScreen() {
   const [confirmTarefasConcluidas, setConfirmTarefasConcluidas] = useState(false);
   const [modalResetFabrica, setModalResetFabrica] = useState(false);
 
+  // As outras telas atualizam sozinhas: toda escrita no banco invalida as
+  // consultas (listener em app/_layout.tsx). Aqui só refaz as contagens.
   function atualizarTudo() {
     setVersao((v) => v + 1);
-    // refetchType: 'all' (não só 'active', o padrão) — sem isso, telas de
-    // outras abas que ficam montadas em segundo plano só atualizavam depois
-    // de fechar e abrir o app de novo.
-    queryClient.invalidateQueries({ refetchType: 'all' });
   }
 
   function handleApagarAvaliacoesAntigas(dataCorte: string) {

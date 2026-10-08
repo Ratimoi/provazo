@@ -13,13 +13,11 @@ import {
 
 import type { Materia } from '../../domain/materias';
 import type { NovaAvaliacao } from '../../domain/avaliacoes';
+import { dataValida, horaValida, notaValida } from '../../domain/validacao';
 import { colors, font, radii, spacing } from '../../theme/tokens';
 import { DataInput } from '../ui/DataInput';
 import { HoraInput } from '../ui/HoraInput';
 import { SelecionarMateriaModal } from './SelecionarMateriaModal';
-
-const REGEX_DATA = /^\d{4}-\d{2}-\d{2}$/;
-const REGEX_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 export type ValorFormularioAvaliacao = {
   materiaId: number | null;
@@ -82,11 +80,11 @@ export function AvaliacaoForm({
       setErro('Dê um título pra essa avaliação.');
       return null;
     }
-    if (!REGEX_DATA.test(valor.data)) {
+    if (!dataValida(valor.data)) {
       setErro('Data inválida — use o formato AAAA-MM-DD.');
       return null;
     }
-    if (!REGEX_HORA.test(valor.hora)) {
+    if (!horaValida(valor.hora)) {
       setErro('Hora inválida — use o formato HH:MM.');
       return null;
     }
@@ -105,6 +103,10 @@ export function AvaliacaoForm({
       nota = Number(valor.nota.replace(',', '.'));
       if (!Number.isFinite(nota)) {
         setErro('Nota inválida.');
+        return null;
+      }
+      if (!notaValida(nota, notaMaxima)) {
+        setErro(`A nota precisa estar entre 0 e ${notaMaxima}.`);
         return null;
       }
     }

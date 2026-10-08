@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -12,21 +12,14 @@ import {
   createEventoRecorrentePessoal,
   type FrequenciaRecorrencia,
 } from '../../../../src/domain/eventosRecorrentes';
-import { compromissosQueryKey } from '../../../../src/hooks/useCompromissosDoDia';
 
 export default function NovoEventoScreen() {
   const { data } = useLocalSearchParams<{ data: string }>();
-  const queryClient = useQueryClient();
 
   const mutacaoUnico = useMutation({
     mutationFn: (dados: NovoEventoUnico) =>
       Promise.resolve(createEventoUnico(dados)),
-    onSuccess: (_novo, dados) => {
-      queryClient.invalidateQueries({
-        queryKey: compromissosQueryKey(dados.data),
-      });
-      router.back();
-    },
+    onSuccess: () => router.back(),
   });
 
   const mutacaoRecorrente = useMutation({
@@ -47,12 +40,7 @@ export default function NovoEventoScreen() {
           observacoes: variaveis.dados.observacoes ?? null,
         }),
       ),
-    onSuccess: (_novo, variaveis) => {
-      queryClient.invalidateQueries({
-        queryKey: compromissosQueryKey(variaveis.dados.data),
-      });
-      router.back();
-    },
+    onSuccess: () => router.back(),
   });
 
   function handleSalvar(

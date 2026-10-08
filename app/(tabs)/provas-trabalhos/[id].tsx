@@ -1,9 +1,11 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AvaliacaoForm } from '../../../src/components/avaliacoes/AvaliacaoForm';
+import { ConfirmModal } from '../../../src/components/ui/ConfirmModal';
 import {
   deleteAvaliacao,
   getAvaliacao,
@@ -11,8 +13,6 @@ import {
   updateAvaliacao,
 } from '../../../src/domain/avaliacoes';
 import { useMateriasPorSemestre } from '../../../src/hooks/useMaterias';
-import { avaliacoesQueryKey } from '../../../src/hooks/useAvaliacoes';
-import { mediasQueryKey } from '../../../src/hooks/useMediasPorMateria';
 import { colors, font, spacing } from '../../../src/theme/tokens';
 
 export default function DetalheAvaliacaoScreen() {
@@ -22,33 +22,20 @@ export default function DetalheAvaliacaoScreen() {
   }>();
   const avaliacaoId = Number(id);
   const semestreIdNum = Number(semestreId);
-  const queryClient = useQueryClient();
 
+  const [confirmarExclusao, setConfirmarExclusao] = useState(false);
   const avaliacao = getAvaliacao(avaliacaoId);
   const { data: materias = [] } = useMateriasPorSemestre(semestreIdNum);
-
-  const invalidar = () => {
-    queryClient.invalidateQueries({
-      queryKey: avaliacoesQueryKey(semestreIdNum),
-    });
-    queryClient.invalidateQueries({ queryKey: mediasQueryKey(semestreIdNum) });
-  };
 
   const mutacaoSalvar = useMutation({
     mutationFn: (dados: NovaAvaliacao) =>
       Promise.resolve(updateAvaliacao(avaliacaoId, dados)),
-    onSuccess: () => {
-      invalidar();
-      router.back();
-    },
+    onSuccess: () => router.back(),
   });
 
   const mutacaoExcluir = useMutation({
     mutationFn: () => Promise.resolve(deleteAvaliacao(avaliacaoId)),
-    onSuccess: () => {
-      invalidar();
-      router.back();
-    },
+    onSuccess: () => router.back(),
   });
 
   if (!avaliacao) {
@@ -79,13 +66,25 @@ export default function DetalheAvaliacaoScreen() {
       />
       <Pressable
         style={styles.botaoExcluir}
-        onPress={() => mutacaoExcluir.mutate()}
+        onPress={() => setConfirmarExclusao(true)}
         disabled={mutacaoExcluir.isPending}
       >
         <Text style={styles.botaoExcluirTexto}>
           {mutacaoExcluir.isPending ? 'Excluindo…' : 'Excluir avaliação'}
         </Text>
       </Pressable>
+      <ConfirmModal
+        visivel={confirmarExclusao}
+        titulo="Excluir essa avaliação?"
+        mensagem="Ela some da lista e da timeline, junto com a nota lançada. Não dá pra desfazer."
+        textoConfirmar="Excluir"
+        destrutivo
+        aoConfirmar={() => {
+          setConfirmarExclusao(false);
+          mutacaoExcluir.mutate();
+        }}
+        aoCancelar={() => setConfirmarExclusao(false)}
+      />
     </SafeAreaView>
   );
 }

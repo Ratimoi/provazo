@@ -9,10 +9,6 @@ export function listAnos(): Ano[] {
   return db.select().from(ano).orderBy(asc(ano.valor)).all();
 }
 
-export function getAno(id: number): Ano | undefined {
-  return db.select().from(ano).where(eq(ano.id, id)).get();
-}
-
 export function createAno(valor: number): Ano {
   return db.insert(ano).values({ valor }).returning().get();
 }
@@ -21,8 +17,4 @@ export function createAno(valor: number): Ano {
 export function getOrCreateAno(valor: number): Ano {
   const existente = db.select().from(ano).where(eq(ano.valor, valor)).get();
   return existente ?? createAno(valor);
-}
-
-export function deleteAno(id: number): void {
-  db.delete(ano).where(eq(ano.id, id)).run();
 }
