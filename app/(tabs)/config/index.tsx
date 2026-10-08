@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import Constants from 'expo-constants';
-import { useMemo, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -36,6 +37,15 @@ export default function ConfiguracoesScreen() {
   const resumo = useMemo(() => contarDados(), [versao]);
   const semestres = useMemo(() => listTodosSemestres(), [versao]);
   const tarefasConcluidas = useMemo(() => contarTarefasConcluidas(), [versao]);
+
+  // As abas ficam montadas em segundo plano, então estas contagens ficariam
+  // congeladas no valor de quando a tela abriu pela primeira vez. Recalcula a
+  // cada vez que a aba ganha foco.
+  useFocusEffect(
+    useCallback(() => {
+      setVersao((v) => v + 1);
+    }, []),
+  );
 
   const [modalAvaliacoesAntigas, setModalAvaliacoesAntigas] = useState(false);
   const [modalSemestre, setModalSemestre] = useState(false);
