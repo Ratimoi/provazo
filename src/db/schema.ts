@@ -172,3 +172,9 @@ export const tarefa = sqliteTable('tarefa', {
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),
 });
+
+// Preferências do app (chave/valor), ex: lembretes ligados e horário do aviso.
+export const preferencia = sqliteTable('preferencia', {
+  chave: text('chave').primaryKey(),
+  valor: text('valor').notNull(),
+});

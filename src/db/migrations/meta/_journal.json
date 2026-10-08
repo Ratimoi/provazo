@@ -29,6 +29,13 @@
       "when": 1786621547293,
       "tag": "0003_salty_bloodaxe",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1791503542861,
+      "tag": "0004_odd_wonder_man",
+      "breakpoints": true
     }
   ]
 }

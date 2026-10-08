@@ -12,6 +12,7 @@ import {
   NovaAvaliacao,
   updateAvaliacao,
 } from '../../../src/domain/avaliacoes';
+import { garantirPermissaoDeLembretes } from '../../../src/domain/lembretes';
 import { useMateriasPorSemestre } from '../../../src/hooks/useMaterias';
 import { colors, font, spacing } from '../../../src/theme/tokens';
 
@@ -30,7 +31,10 @@ export default function DetalheAvaliacaoScreen() {
   const mutacaoSalvar = useMutation({
     mutationFn: (dados: NovaAvaliacao) =>
       Promise.resolve(updateAvaliacao(avaliacaoId, dados)),
-    onSuccess: () => router.back(),
+    onSuccess: (_atualizada, dados) => {
+      if ((dados.diasAntesLembrete ?? 1) >= 0) garantirPermissaoDeLembretes();
+      router.back();
+    },
   });
 
   const mutacaoExcluir = useMutation({
@@ -60,6 +64,7 @@ export default function DetalheAvaliacaoScreen() {
           peso: String(avaliacao.peso),
           nota: avaliacao.nota != null ? String(avaliacao.nota) : '',
           notaMaxima: String(avaliacao.notaMaxima),
+          diasAntesLembrete: avaliacao.diasAntesLembrete,
           observacoes: avaliacao.observacoes ?? '',
         }}
         aoSalvar={(dados) => mutacaoSalvar.mutate(dados)}

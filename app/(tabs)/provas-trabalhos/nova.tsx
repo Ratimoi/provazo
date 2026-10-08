@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AvaliacaoForm } from '../../../src/components/avaliacoes/AvaliacaoForm';
 import { createAvaliacao, NovaAvaliacao } from '../../../src/domain/avaliacoes';
+import { garantirPermissaoDeLembretes } from '../../../src/domain/lembretes';
 import { useMateriasPorSemestre } from '../../../src/hooks/useMaterias';
 import { colors, font } from '../../../src/theme/tokens';
 
@@ -16,7 +17,10 @@ export default function NovaAvaliacaoScreen() {
 
   const mutacao = useMutation({
     mutationFn: (dados: NovaAvaliacao) => Promise.resolve(createAvaliacao(dados)),
-    onSuccess: () => router.back(),
+    onSuccess: (_nova, dados) => {
+      if ((dados.diasAntesLembrete ?? 1) >= 0) garantirPermissaoDeLembretes();
+      router.back();
+    },
   });
 
   if (materias.length === 0) {

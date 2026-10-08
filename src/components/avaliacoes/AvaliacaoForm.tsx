@@ -28,8 +28,19 @@ export type ValorFormularioAvaliacao = {
   peso: string;
   nota: string;
   notaMaxima: string;
+  /** -1 = sem aviso; 0 = no dia; N = N dias antes. */
+  diasAntesLembrete: number;
   observacoes: string;
 };
+
+const OPCOES_AVISO: { valor: number; rotulo: string }[] = [
+  { valor: -1, rotulo: 'Sem aviso' },
+  { valor: 0, rotulo: 'No dia' },
+  { valor: 1, rotulo: '1 dia antes' },
+  { valor: 2, rotulo: '2 dias antes' },
+  { valor: 3, rotulo: '3 dias antes' },
+  { valor: 7, rotulo: '1 semana antes' },
+];
 
 const VAZIO: ValorFormularioAvaliacao = {
   materiaId: null,
@@ -40,6 +51,7 @@ const VAZIO: ValorFormularioAvaliacao = {
   peso: '1',
   nota: '',
   notaMaxima: '10',
+  diasAntesLembrete: 1,
   observacoes: '',
 };
 
@@ -121,7 +133,7 @@ export function AvaliacaoForm({
       peso,
       nota,
       notaMaxima,
-      diasAntesLembrete: 1,
+      diasAntesLembrete: valor.diasAntesLembrete,
       observacoes: valor.observacoes.trim() || null,
     };
   }
@@ -240,6 +252,26 @@ export function AvaliacaoForm({
         onChangeText={(v) => atualizar('nota', v)}
         keyboardType="decimal-pad"
       />
+
+      <Text style={styles.rotulo}>Avisar</Text>
+      <View style={styles.chips}>
+        {OPCOES_AVISO.map((opcao) => {
+          const selecionado = opcao.valor === valor.diasAntesLembrete;
+          return (
+            <Pressable
+              key={opcao.valor}
+              onPress={() => atualizar('diasAntesLembrete', opcao.valor)}
+              style={[styles.chip, selecionado && styles.chipAtivoNeutro]}
+            >
+              <Text
+                style={[styles.chipTexto, selecionado && styles.chipTextoAtivo]}
+              >
+                {opcao.rotulo}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
 
       <Text style={styles.rotulo}>Observações (opcional)</Text>
       <TextInput
