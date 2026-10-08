@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useMutation } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
@@ -9,63 +8,22 @@ import {
   SectionList,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AvaliacaoCard } from '../../../src/components/avaliacoes/AvaliacaoCard';
-import { EditarAulaModal } from '../../../src/components/aulas/EditarAulaModal';
-import { GerenciarAulasModal } from '../../../src/components/aulas/GerenciarAulasModal';
-import { NovaAulaModal } from '../../../src/components/aulas/NovaAulaModal';
-import { EditarMateriaModal } from '../../../src/components/materias/EditarMateriaModal';
-import { MateriaAcoesModal } from '../../../src/components/materias/MateriaAcoesModal';
-import { MateriaCard } from '../../../src/components/materias/MateriaCard';
-import { NovaMateriaModal } from '../../../src/components/materias/NovaMateriaModal';
+import { MateriasSection } from '../../../src/components/materias/MateriasSection';
 import { EditarTarefaModal } from '../../../src/components/tarefas/EditarTarefaModal';
 import { TarefasSection } from '../../../src/components/tarefas/TarefasSection';
-import { ConfirmModal } from '../../../src/components/ui/ConfirmModal';
 import type { AvaliacaoComMateria } from '../../../src/domain/avaliacoes';
-import {
-  Aula,
-  createAula,
-  deleteAula,
-  formatarDiasSemana,
-  NovaAula,
-  updateAula,
-} from '../../../src/domain/eventosRecorrentes';
-import {
-  createMateria,
-  deleteMateria,
-  listInstituicoesDistintas,
-  Materia,
-  updateMateria,
-} from '../../../src/domain/materias';
-import {
-  createTarefa,
-  deleteTarefa,
-  toggleTarefaConcluida,
-  updateTarefa,
-  type Tarefa,
-} from '../../../src/domain/tarefas';
-import { useAulasPorSemestre } from '../../../src/hooks/useAulas';
+import type { Tarefa } from '../../../src/domain/tarefas';
 import { useAvaliacoesPorSemestre } from '../../../src/hooks/useAvaliacoes';
 import { useMateriasPorSemestre } from '../../../src/hooks/useMaterias';
-import { useMediasPorMateria } from '../../../src/hooks/useMediasPorMateria';
 import { useSemestreSelecionado } from '../../../src/hooks/useSemestreSelecionado';
 import { useTarefas } from '../../../src/hooks/useTarefas';
+import { useTarefasMutations } from '../../../src/hooks/useTarefasMutations';
 import { colors, font, radii, shadow, spacing } from '../../../src/theme/tokens';
-
-const LIMIAR_BUSCA_MATERIAS = 6;
-
-/** Ignora acentos na busca, pra "calculo" achar "Cálculo". */
-function normalizar(texto: string): string {
-  return texto
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .trim();
-}
 
 function agruparPorMateria(avaliacoes: AvaliacaoComMateria[]) {
   const grupos = new Map<string, AvaliacaoComMateria[]>();
@@ -81,268 +39,27 @@ function agruparPorMateria(avaliacoes: AvaliacaoComMateria[]) {
   }));
 }
 
-function mensagemAmigavel(erro: unknown): string | undefined {
-  if (!(erro instanceof Error)) return undefined;
-  if (erro.message.includes('UNIQUE constraint failed')) {
-    return erro.message.includes('materia')
-      ? 'Essa matéria já existe nesse semestre.'
-      : 'Essa aula já está cadastrada pra esse dia e horário.';
-  }
-  if (erro.message.includes('FOREIGN KEY constraint failed')) {
-    return 'Algo que essa ação depende foi removido enquanto isso. Feche e abra a tela de novo.';
-  }
-  return erro.message;
-}
-
 export default function ProvasTrabalhosScreen() {
   const { selecionado, semestre, irParaAnterior, irParaProximo } =
     useSemestreSelecionado();
 
   const { data: materias = [] } = useMateriasPorSemestre(semestre.id);
   const { data: avaliacoes = [] } = useAvaliacoesPorSemestre(semestre.id);
-  const { data: medias = [] } = useMediasPorMateria(semestre.id);
-  const { data: aulas = [] } = useAulasPorSemestre(semestre.id);
   const { data: tarefas = [] } = useTarefas();
+  const tarefasMutacoes = useTarefasMutations();
 
-  const [modalMateriaAberto, setModalMateriaAberto] = useState(false);
-  const [modalAulaAberto, setModalAulaAberto] = useState(false);
-  const [materiaIdParaAula, setMateriaIdParaAula] = useState<number | null>(
-    null,
-  );
   const [materiaFiltroId, setMateriaFiltroId] = useState<number | null>(null);
-  const [buscaMateria, setBuscaMateria] = useState('');
-  const [acoesMateria, setAcoesMateria] = useState<Materia | null>(null);
-  const [materiaEditando, setMateriaEditando] = useState<Materia | null>(null);
-  const [confirmExcluirMateria, setConfirmExcluirMateria] =
-    useState<Materia | null>(null);
-  const [gerenciandoAulasDe, setGerenciandoAulasDe] = useState<Materia | null>(
-    null,
-  );
-  const [aulaEditando, setAulaEditando] = useState<Aula | null>(null);
-  const [confirmExcluirAula, setConfirmExcluirAula] = useState<Aula | null>(
-    null,
-  );
-  const [materiasExpandido, setMateriasExpandido] = useState(false);
   const [tarefaEditando, setTarefaEditando] = useState<Tarefa | null>(null);
 
-  const mediasPorMateria = useMemo(
-    () => new Map(medias.map((m) => [m.materiaId, m])),
-    [medias],
-  );
-  const aulasPorMateria = useMemo(() => {
-    const mapa = new Map<number, Aula[]>();
-    for (const aula of aulas) {
-      const lista = mapa.get(aula.materiaId) ?? [];
-      lista.push(aula);
-      mapa.set(aula.materiaId, lista);
-    }
-    return mapa;
-  }, [aulas]);
-
-  const materiasVisiveis = useMemo(() => {
-    const busca = normalizar(buscaMateria);
-    if (busca.length === 0) return materias;
-    return materias.filter(
-      (m) =>
-        normalizar(m.nome).includes(busca) ||
-        (m.instituicao && normalizar(m.instituicao).includes(busca)),
-    );
-  }, [materias, buscaMateria]);
-
-  // Colapsada por padrão com muitas matérias, pra não tomar a tela toda —
-  // busca ativa sempre mostra tudo que bate, sem essa limitação.
-  const materiasParaExibir =
-    materiasExpandido || buscaMateria.length > 0
-      ? materiasVisiveis
-      : materiasVisiveis.slice(0, LIMIAR_BUSCA_MATERIAS);
-  const materiasEscondidas = materiasVisiveis.length - materiasParaExibir.length;
-
-  // Recalcula sempre que a lista de matérias muda (após criar/editar), pra
-  // sugerir instituições já usadas em qualquer semestre, não só o atual.
-  const instituicoesSugeridas = useMemo(
-    () => listInstituicoesDistintas(),
-    [materias],
-  );
-
-  const avaliacoesFiltradas = useMemo(
+  const secoes = useMemo(
     () =>
-      materiaFiltroId
-        ? avaliacoes.filter((av) => av.materiaId === materiaFiltroId)
-        : avaliacoes,
+      agruparPorMateria(
+        materiaFiltroId
+          ? avaliacoes.filter((av) => av.materiaId === materiaFiltroId)
+          : avaliacoes,
+      ),
     [avaliacoes, materiaFiltroId],
   );
-  const secoes = useMemo(
-    () => agruparPorMateria(avaliacoesFiltradas),
-    [avaliacoesFiltradas],
-  );
-
-  const mutacaoMateria = useMutation({
-    mutationFn: ({
-      nome,
-      corHex,
-      instituicao,
-    }: {
-      nome: string;
-      corHex: string | null;
-      instituicao: string | null;
-    }) => {
-      const nomeLimpo = nome.trim();
-      if (nomeLimpo.length === 0) {
-        throw new Error('Dê um nome pra matéria.');
-      }
-      try {
-        return Promise.resolve(
-          createMateria(semestre.id, nomeLimpo, corHex ?? undefined, instituicao),
-        );
-      } catch (e) {
-        throw new Error(mensagemAmigavel(e) ?? 'Não foi possível salvar.');
-      }
-    },
-    onSuccess: () => setModalMateriaAberto(false),
-  });
-
-  const mutacaoMateriaEditar = useMutation({
-    mutationFn: ({
-      id,
-      nome,
-      corHex,
-      instituicao,
-    }: {
-      id: number;
-      nome: string;
-      corHex: string;
-      instituicao: string | null;
-    }) => {
-      const nomeLimpo = nome.trim();
-      if (nomeLimpo.length === 0) {
-        throw new Error('Dê um nome pra matéria.');
-      }
-      try {
-        return Promise.resolve(
-          updateMateria(id, { nome: nomeLimpo, corHex, instituicao }),
-        );
-      } catch (e) {
-        throw new Error(mensagemAmigavel(e) ?? 'Não foi possível salvar.');
-      }
-    },
-    onSuccess: () => setMateriaEditando(null),
-  });
-
-  const mutacaoMateriaExcluir = useMutation({
-    mutationFn: (id: number) => Promise.resolve(deleteMateria(id)),
-    onSuccess: (_resultado, id) =>
-      setMateriaFiltroId((atual) => (atual === id ? null : atual)),
-  });
-
-  const mutacaoAula = useMutation({
-    mutationFn: (dados: NovaAula) => {
-      try {
-        return Promise.resolve(createAula(dados));
-      } catch (e) {
-        throw new Error(mensagemAmigavel(e) ?? 'Não foi possível salvar.');
-      }
-    },
-    onSuccess: () => setModalAulaAberto(false),
-  });
-
-  const mutacaoAulaEditar = useMutation({
-    mutationFn: ({ id, dados }: { id: number; dados: NovaAula }) => {
-      try {
-        return Promise.resolve(updateAula(id, dados));
-      } catch (e) {
-        throw new Error(mensagemAmigavel(e) ?? 'Não foi possível salvar.');
-      }
-    },
-    onSuccess: () => setAulaEditando(null),
-  });
-
-  const mutacaoAulaExcluir = useMutation({
-    mutationFn: (id: number) => Promise.resolve(deleteAula(id)),
-  });
-
-  const mutacaoTarefaCriar = useMutation({
-    mutationFn: (titulo: string) => Promise.resolve(createTarefa(titulo)),
-  });
-  const mutacaoTarefaAlternar = useMutation({
-    mutationFn: ({ id, concluida }: { id: number; concluida: boolean }) =>
-      Promise.resolve(toggleTarefaConcluida(id, concluida)),
-  });
-  const mutacaoTarefaExcluir = useMutation({
-    mutationFn: (id: number) => Promise.resolve(deleteTarefa(id)),
-  });
-  const mutacaoTarefaEditar = useMutation({
-    mutationFn: ({
-      id,
-      dados,
-    }: {
-      id: number;
-      dados: { titulo: string; observacoes: string | null };
-    }) => Promise.resolve(updateTarefa(id, dados)),
-    onSuccess: () => setTarefaEditando(null),
-  });
-
-  function abrirModalMateria() {
-    mutacaoMateria.reset();
-    setModalMateriaAberto(true);
-  }
-
-  function abrirModalAula(materiaId: number | null) {
-    mutacaoAula.reset();
-    setMateriaIdParaAula(materiaId);
-    setModalAulaAberto(true);
-  }
-
-  function handleLongPressMateria(materia: Materia) {
-    setAcoesMateria(materia);
-  }
-
-  function handleEditarDasAcoes() {
-    if (!acoesMateria) return;
-    mutacaoMateriaEditar.reset();
-    setMateriaEditando(acoesMateria);
-    setAcoesMateria(null);
-  }
-
-  function handleGerenciarAulasDasAcoes() {
-    if (!acoesMateria) return;
-    setGerenciandoAulasDe(acoesMateria);
-    setAcoesMateria(null);
-  }
-
-  function handleExcluirDasAcoes() {
-    if (!acoesMateria) return;
-    setConfirmExcluirMateria(acoesMateria);
-    setAcoesMateria(null);
-  }
-
-  function confirmarExclusaoMateria() {
-    if (!confirmExcluirMateria) return;
-    mutacaoMateriaExcluir.mutate(confirmExcluirMateria.id);
-    setConfirmExcluirMateria(null);
-  }
-
-  function handleAdicionarAulaDoGerenciamento() {
-    if (!gerenciandoAulasDe) return;
-    abrirModalAula(gerenciandoAulasDe.id);
-    setGerenciandoAulasDe(null);
-  }
-
-  function handleEditarAula(aula: Aula) {
-    mutacaoAulaEditar.reset();
-    setAulaEditando(aula);
-    setGerenciandoAulasDe(null);
-  }
-
-  function handleExcluirAulaSolicitado(aula: Aula) {
-    setConfirmExcluirAula(aula);
-    setGerenciandoAulasDe(null);
-  }
-
-  function confirmarExclusaoAula() {
-    if (!confirmExcluirAula) return;
-    mutacaoAulaExcluir.mutate(confirmExcluirAula.id);
-    setConfirmExcluirAula(null);
-  }
 
   const cabecalho = (
     <View>
@@ -378,92 +95,11 @@ export default function ProvasTrabalhosScreen() {
         </Pressable>
       </View>
 
-      <View style={styles.secaoChips}>
-        <View style={styles.secaoCabecalho}>
-          <Text style={styles.secaoTitulo}>Matérias</Text>
-          <Pressable onPress={abrirModalMateria} hitSlop={8}>
-            <Ionicons name="add-circle-outline" size={20} color={colors.brand} />
-          </Pressable>
-        </View>
-
-        {materias.length > LIMIAR_BUSCA_MATERIAS && (
-          <View style={styles.busca}>
-            <Ionicons name="search-outline" size={16} color={colors.inkFaint} />
-            <TextInput
-              style={styles.buscaInput}
-              placeholder="Buscar por matéria ou instituição…"
-              value={buscaMateria}
-              onChangeText={setBuscaMateria}
-              returnKeyType="search"
-            />
-            {buscaMateria.length > 0 && (
-              <Pressable onPress={() => setBuscaMateria('')} hitSlop={8}>
-                <Ionicons name="close-circle" size={16} color={colors.inkFaint} />
-              </Pressable>
-            )}
-          </View>
-        )}
-
-        {materiasVisiveis.length === 0 ? (
-          <Text style={styles.buscaSemResultado}>
-            Nenhuma matéria encontrada pra "{buscaMateria}".
-          </Text>
-        ) : (
-          <View style={styles.grade}>
-            {materiasParaExibir.map((materia) => {
-              const aulasDaMateria = aulasPorMateria.get(materia.id) ?? [];
-              const aulaResumo =
-                aulasDaMateria.length > 0
-                  ? aulasDaMateria
-                      .map(
-                        (a) => `${formatarDiasSemana(a.diasSemana)} ${a.horaInicio}`,
-                      )
-                      .join(' · ')
-                  : null;
-              return (
-                <MateriaCard
-                  key={materia.id}
-                  materia={materia}
-                  media={mediasPorMateria.get(materia.id)?.media ?? null}
-                  aulaResumo={aulaResumo}
-                  ativo={materiaFiltroId === materia.id}
-                  onPress={() =>
-                    setMateriaFiltroId((atual) =>
-                      atual === materia.id ? null : materia.id,
-                    )
-                  }
-                  onLongPress={() => handleLongPressMateria(materia)}
-                />
-              );
-            })}
-          </View>
-        )}
-
-        {materiasEscondidas > 0 && (
-          <Pressable
-            style={styles.verMais}
-            onPress={() => setMateriasExpandido(true)}
-          >
-            <Text style={styles.verMaisTexto}>
-              Ver mais {materiasEscondidas} matéria
-              {materiasEscondidas === 1 ? '' : 's'}
-            </Text>
-            <Ionicons name="chevron-down" size={14} color={colors.brand} />
-          </Pressable>
-        )}
-
-        {materiasExpandido &&
-          buscaMateria.length === 0 &&
-          materiasVisiveis.length > LIMIAR_BUSCA_MATERIAS && (
-            <Pressable
-              style={styles.verMais}
-              onPress={() => setMateriasExpandido(false)}
-            >
-              <Text style={styles.verMaisTexto}>Ocultar</Text>
-              <Ionicons name="chevron-up" size={14} color={colors.brand} />
-            </Pressable>
-          )}
-      </View>
+      <MateriasSection
+        semestreId={semestre.id}
+        materiaFiltroId={materiaFiltroId}
+        aoFiltrar={setMateriaFiltroId}
+      />
     </View>
   );
 
@@ -473,186 +109,106 @@ export default function ProvasTrabalhosScreen() {
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-      <SectionList
-        sections={secoes}
-        keyExtractor={(item) => String(item.id)}
-        contentContainerStyle={styles.lista}
-        keyboardShouldPersistTaps="handled"
-        ListHeaderComponent={cabecalho}
-        ListFooterComponent={
-          <View style={styles.rodape}>
-            <TarefasSection
-              tarefas={tarefas}
-              aoCriar={(titulo) => mutacaoTarefaCriar.mutate(titulo)}
-              aoAlternar={(id, concluida) =>
-                mutacaoTarefaAlternar.mutate({ id, concluida })
-              }
-              aoExcluir={(id) => mutacaoTarefaExcluir.mutate(id)}
-              aoEditar={(tarefa) => setTarefaEditando(tarefa)}
-            />
-          </View>
-        }
-        ListEmptyComponent={
-          materias.length === 0 ? (
-            <View style={styles.vazio}>
-              <View style={styles.vazioIconContainer}>
-                <Ionicons name="school-outline" size={28} color={colors.brand} />
-              </View>
-              <Text style={styles.vazioTitulo}>Nenhuma matéria ainda</Text>
-              <Text style={styles.vazioTexto}>
-                Toque no + ao lado de "Matérias" acima pra criar a primeira.
-              </Text>
+        <SectionList
+          sections={secoes}
+          keyExtractor={(item) => String(item.id)}
+          contentContainerStyle={styles.lista}
+          keyboardShouldPersistTaps="handled"
+          ListHeaderComponent={cabecalho}
+          ListFooterComponent={
+            <View style={styles.rodape}>
+              <TarefasSection
+                tarefas={tarefas}
+                aoCriar={(titulo) => tarefasMutacoes.criar.mutate(titulo)}
+                aoAlternar={(id, concluida) =>
+                  tarefasMutacoes.alternar.mutate({ id, concluida })
+                }
+                aoExcluir={(id) => tarefasMutacoes.excluir.mutate(id)}
+                aoEditar={(tarefa) => setTarefaEditando(tarefa)}
+              />
             </View>
-          ) : (
-            <View style={styles.vazio}>
-              <View style={styles.vazioIconContainer}>
-                <Ionicons
-                  name="document-text-outline"
-                  size={28}
-                  color={colors.brand}
-                />
-              </View>
-              <Text style={styles.vazioTitulo}>
-                {materiaFiltroId
-                  ? 'Nada por aqui pra essa matéria'
-                  : 'Nenhuma prova ou trabalho por aqui ainda'}
-              </Text>
-              <Text style={styles.vazioTexto}>
-                {materiaFiltroId
-                  ? 'Toque de novo no chip pra ver todas de novo.'
-                  : 'Que tal adicionar o primeiro?'}
-              </Text>
-            </View>
-          )
-        }
-        renderSectionHeader={({ section }) => (
-          <Text style={styles.secaoTituloMateria}>
-            {section.title}
-            {section.instituicao ? ` · ${section.instituicao}` : ''}
-          </Text>
-        )}
-        renderItem={({ item }) => (
-          <View style={styles.itemWrapper}>
-            <AvaliacaoCard
-              avaliacao={item}
-              onPress={() =>
-                router.push({
-                  pathname: '/provas-trabalhos/[id]',
-                  params: {
-                    id: String(item.id),
-                    semestreId: String(semestre.id),
-                  },
-                })
-              }
+          }
+          ListEmptyComponent={
+            <EstadoVazio
+              semMaterias={materias.length === 0}
+              filtrando={materiaFiltroId !== null}
             />
-          </View>
-        )}
-        ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
-        SectionSeparatorComponent={() => <View style={{ height: spacing.lg }} />}
-      />
+          }
+          renderSectionHeader={({ section }) => (
+            <Text style={styles.secaoTituloMateria}>
+              {section.title}
+              {section.instituicao ? ` · ${section.instituicao}` : ''}
+            </Text>
+          )}
+          renderItem={({ item }) => (
+            <View style={styles.itemWrapper}>
+              <AvaliacaoCard
+                avaliacao={item}
+                onPress={() =>
+                  router.push({
+                    pathname: '/provas-trabalhos/[id]',
+                    params: {
+                      id: String(item.id),
+                      semestreId: String(semestre.id),
+                    },
+                  })
+                }
+              />
+            </View>
+          )}
+          ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
+          SectionSeparatorComponent={() => <View style={{ height: spacing.lg }} />}
+        />
       </KeyboardAvoidingView>
 
-      <NovaMateriaModal
-        visivel={modalMateriaAberto}
-        salvando={mutacaoMateria.isPending}
-        erro={mutacaoMateria.error?.message}
-        instituicoesSugeridas={instituicoesSugeridas}
-        aoFechar={() => setModalMateriaAberto(false)}
-        aoSalvar={(nome, corHex, instituicao) =>
-          mutacaoMateria.mutate({ nome, corHex, instituicao })
-        }
-      />
-      <NovaAulaModal
-        visivel={modalAulaAberto}
-        materias={materias}
-        materiaIdInicial={materiaIdParaAula}
-        salvando={mutacaoAula.isPending}
-        erro={mutacaoAula.error?.message}
-        aoFechar={() => setModalAulaAberto(false)}
-        aoSalvar={(dados) => mutacaoAula.mutate(dados)}
-      />
-      <MateriaAcoesModal
-        visivel={acoesMateria !== null}
-        materia={acoesMateria}
-        aoFechar={() => setAcoesMateria(null)}
-        aoEditar={handleEditarDasAcoes}
-        aoGerenciarAulas={handleGerenciarAulasDasAcoes}
-        aoExcluir={handleExcluirDasAcoes}
-      />
-      <GerenciarAulasModal
-        visivel={gerenciandoAulasDe !== null}
-        materia={gerenciandoAulasDe}
-        aulas={
-          gerenciandoAulasDe
-            ? (aulasPorMateria.get(gerenciandoAulasDe.id) ?? [])
-            : []
-        }
-        aoFechar={() => setGerenciandoAulasDe(null)}
-        aoEditarAula={handleEditarAula}
-        aoExcluirAula={handleExcluirAulaSolicitado}
-        aoAdicionarAula={handleAdicionarAulaDoGerenciamento}
-      />
-      <EditarAulaModal
-        visivel={aulaEditando !== null}
-        aula={aulaEditando}
-        salvando={mutacaoAulaEditar.isPending}
-        erro={mutacaoAulaEditar.error?.message}
-        aoFechar={() => setAulaEditando(null)}
-        aoSalvar={(dados) => {
-          if (!aulaEditando) return;
-          mutacaoAulaEditar.mutate({ id: aulaEditando.id, dados });
-        }}
-      />
-      <EditarMateriaModal
-        visivel={materiaEditando !== null}
-        materia={materiaEditando}
-        salvando={mutacaoMateriaEditar.isPending}
-        erro={mutacaoMateriaEditar.error?.message}
-        instituicoesSugeridas={instituicoesSugeridas}
-        aoFechar={() => setMateriaEditando(null)}
-        aoSalvar={(nome, corHex, instituicao) => {
-          if (!materiaEditando) return;
-          mutacaoMateriaEditar.mutate({
-            id: materiaEditando.id,
-            nome,
-            corHex,
-            instituicao,
-          });
-        }}
-      />
-      <ConfirmModal
-        visivel={confirmExcluirMateria !== null}
-        titulo={`Excluir ${confirmExcluirMateria?.nome ?? ''}?`}
-        mensagem="Isso apaga também todas as avaliações e aulas fixas dessa matéria. Não dá pra desfazer."
-        textoConfirmar="Excluir"
-        destrutivo
-        aoConfirmar={confirmarExclusaoMateria}
-        aoCancelar={() => setConfirmExcluirMateria(null)}
-      />
-      <ConfirmModal
-        visivel={confirmExcluirAula !== null}
-        titulo="Excluir aula?"
-        mensagem={
-          confirmExcluirAula
-            ? `${formatarDiasSemana(confirmExcluirAula.diasSemana)} ${confirmExcluirAula.horaInicio} não vai mais aparecer automaticamente na Timeline.`
-            : undefined
-        }
-        textoConfirmar="Excluir"
-        destrutivo
-        aoConfirmar={confirmarExclusaoAula}
-        aoCancelar={() => setConfirmExcluirAula(null)}
-      />
       <EditarTarefaModal
         visivel={tarefaEditando !== null}
         tarefa={tarefaEditando}
-        salvando={mutacaoTarefaEditar.isPending}
+        salvando={tarefasMutacoes.editar.isPending}
         aoFechar={() => setTarefaEditando(null)}
         aoSalvar={(dados) => {
           if (!tarefaEditando) return;
-          mutacaoTarefaEditar.mutate({ id: tarefaEditando.id, dados });
+          tarefasMutacoes.editar.mutate(
+            { id: tarefaEditando.id, dados },
+            { onSuccess: () => setTarefaEditando(null) },
+          );
         }}
       />
     </SafeAreaView>
+  );
+}
+
+function EstadoVazio({
+  semMaterias,
+  filtrando,
+}: {
+  semMaterias: boolean;
+  filtrando: boolean;
+}) {
+  return (
+    <View style={styles.vazio}>
+      <View style={styles.vazioIconContainer}>
+        <Ionicons
+          name={semMaterias ? 'school-outline' : 'document-text-outline'}
+          size={28}
+          color={colors.brand}
+        />
+      </View>
+      <Text style={styles.vazioTitulo}>
+        {semMaterias
+          ? 'Nenhuma matéria ainda'
+          : filtrando
+            ? 'Nada por aqui pra essa matéria'
+            : 'Nenhuma prova ou trabalho por aqui ainda'}
+      </Text>
+      <Text style={styles.vazioTexto}>
+        {semMaterias
+          ? 'Toque no + ao lado de "Matérias" acima pra criar a primeira.'
+          : filtrando
+            ? 'Toque de novo no chip pra ver todas de novo.'
+            : 'Que tal adicionar o primeiro?'}
+      </Text>
+    </View>
   );
 }
 
@@ -705,68 +261,6 @@ const styles = StyleSheet.create({
     fontFamily: font.bodySemibold,
     color: colors.surface,
     fontSize: 14,
-  },
-  secaoChips: {
-    marginTop: spacing.lg,
-    marginBottom: spacing.md,
-    gap: spacing.sm,
-  },
-  secaoCabecalho: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-  },
-  secaoTitulo: {
-    fontFamily: font.bodySemibold,
-    fontSize: 12.5,
-    color: colors.inkSoft,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  busca: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginHorizontal: spacing.lg,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.surface,
-  },
-  buscaInput: {
-    flex: 1,
-    fontFamily: font.body,
-    fontSize: 14,
-    color: colors.ink,
-    padding: 0,
-  },
-  buscaSemResultado: {
-    fontFamily: font.body,
-    fontSize: 13,
-    color: colors.inkFaint,
-    paddingHorizontal: spacing.lg,
-  },
-  grade: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.lg,
-  },
-  verMais: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    marginTop: spacing.sm,
-    paddingVertical: spacing.xs,
-  },
-  verMaisTexto: {
-    fontFamily: font.bodySemibold,
-    fontSize: 13,
-    color: colors.brand,
   },
   lista: {
     paddingBottom: 48,

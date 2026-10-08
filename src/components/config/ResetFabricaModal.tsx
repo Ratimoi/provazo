@@ -43,7 +43,7 @@ export function ResetFabricaModal({
       </View>
 
       <Text style={styles.rotulo}>
-        Digite "{FRASE_CONFIRMACAO}" pra confirmar
+        Digite &quot;{FRASE_CONFIRMACAO}&quot; pra confirmar
       </Text>
       <TextInput
         style={styles.input}

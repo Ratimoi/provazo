@@ -32,9 +32,9 @@ const ROTULOS_RESUMO: { chave: keyof ReturnType<typeof contarDados>; rotulo: str
 export default function ConfiguracoesScreen() {
   const [versao, setVersao] = useState(0);
 
-  const resumo = useMemo(() => contarDados(), [versao]);
-  const semestres = useMemo(() => listTodosSemestres(), [versao]);
-  const tarefasConcluidas = useMemo(() => contarTarefasConcluidas(), [versao]);
+  const resumo = useMemo(() => contarDados(), [versao]); // eslint-disable-line react-hooks/exhaustive-deps
+  const semestres = useMemo(() => listTodosSemestres(), [versao]); // eslint-disable-line react-hooks/exhaustive-deps
+  const tarefasConcluidas = useMemo(() => contarTarefasConcluidas(), [versao]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // As abas ficam montadas em segundo plano, então estas contagens ficariam
   // congeladas no valor de quando a tela abriu pela primeira vez. Recalcula a
