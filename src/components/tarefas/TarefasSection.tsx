@@ -122,12 +122,19 @@ function ItemTarefa({
           <Ionicons name="checkmark" size={14} color={colors.surface} />
         )}
       </Pressable>
-      <Text
-        style={[styles.itemTexto, tarefa.concluida && styles.itemTextoConcluido]}
-        numberOfLines={1}
-      >
-        {tarefa.titulo}
-      </Text>
+      <View style={styles.itemTextos}>
+        <Text
+          style={[styles.itemTexto, tarefa.concluida && styles.itemTextoConcluido]}
+          numberOfLines={1}
+        >
+          {tarefa.titulo}
+        </Text>
+        {tarefa.observacoes && (
+          <Text style={styles.itemObservacoes} numberOfLines={2}>
+            {tarefa.observacoes}
+          </Text>
+        )}
+      </View>
       <Pressable hitSlop={8} onPress={() => aoExcluir(tarefa.id)}>
         <Ionicons name="close" size={16} color={colors.inkFaint} />
       </Pressable>
@@ -215,11 +222,19 @@ const styles = StyleSheet.create({
     backgroundColor: colors.success,
     borderColor: colors.success,
   },
-  itemTexto: {
+  itemTextos: {
     flex: 1,
+    gap: 2,
+  },
+  itemTexto: {
     fontFamily: font.body,
     fontSize: 15,
     color: colors.ink,
+  },
+  itemObservacoes: {
+    fontFamily: font.body,
+    fontSize: 12.5,
+    color: colors.inkFaint,
   },
   itemTextoConcluido: {
     color: colors.inkFaint,
