@@ -1,19 +1,21 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { router } from 'expo-router';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AgendaVertical } from '../../../src/components/timeline/AgendaVertical';
+import { RecorrenteAcoesModal } from '../../../src/components/timeline/RecorrenteAcoesModal';
+import { ConfirmModal } from '../../../src/components/ui/ConfirmModal';
 import type { Compromisso } from '../../../src/domain/timeline';
 import { getMateria } from '../../../src/domain/materias';
-import { pularOcorrencia } from '../../../src/domain/eventosRecorrentes';
 import {
-  compromissosQueryKey,
-  useCompromissosDoDia,
-} from '../../../src/hooks/useCompromissosDoDia';
+  deleteEventoRecorrente,
+  pularOcorrencia,
+} from '../../../src/domain/eventosRecorrentes';
+import { useCompromissosDoDia } from '../../../src/hooks/useCompromissosDoDia';
 import { useDiaSelecionado } from '../../../src/hooks/useDiaSelecionado';
 import { colors, font, radii, shadow, spacing } from '../../../src/theme/tokens';
 
@@ -21,7 +23,9 @@ export default function TimelineScreen() {
   const { data, dataIso, ehHoje, irParaAnterior, irParaProximo, irParaHoje } =
     useDiaSelecionado();
   const { data: compromissos = [] } = useCompromissosDoDia(dataIso);
-  const queryClient = useQueryClient();
+  const [recorrenteSelecionado, setRecorrenteSelecionado] =
+    useState<Compromisso | null>(null);
+  const [confirmarExclusao, setConfirmarExclusao] = useState(false);
 
   function abrirCompromisso(compromisso: Compromisso) {
     if (compromisso.origem === 'avaliacao') {
@@ -42,20 +46,36 @@ export default function TimelineScreen() {
         params: { id: String(compromisso.origemId) },
       });
     } else {
-      Alert.alert(compromisso.titulo, 'Compromisso recorrente', [
-        { text: 'Fechar', style: 'cancel' },
-        {
-          text: 'Pular esta ocorrência',
-          style: 'destructive',
-          onPress: () => {
-            pularOcorrencia(compromisso.origemId, dataIso);
-            queryClient.invalidateQueries({
-              queryKey: compromissosQueryKey(dataIso),
-            });
-          },
-        },
-      ]);
+      setRecorrenteSelecionado(compromisso);
     }
+  }
+
+  function editarRecorrente() {
+    if (!recorrenteSelecionado) return;
+    router.push({
+      pathname: '/timeline/evento/recorrente/[id]',
+      params: { id: String(recorrenteSelecionado.origemId) },
+    });
+    setRecorrenteSelecionado(null);
+  }
+
+  function pularRecorrente() {
+    if (!recorrenteSelecionado) return;
+    pularOcorrencia(recorrenteSelecionado.origemId, dataIso);
+    setRecorrenteSelecionado(null);
+  }
+
+  function irParaMaterias() {
+    setRecorrenteSelecionado(null);
+    router.navigate('/provas-trabalhos');
+  }
+
+  function confirmarExclusaoRecorrente() {
+    if (recorrenteSelecionado) {
+      deleteEventoRecorrente(recorrenteSelecionado.origemId);
+    }
+    setConfirmarExclusao(false);
+    setRecorrenteSelecionado(null);
   }
 
   return (
@@ -95,6 +115,25 @@ export default function TimelineScreen() {
         compromissos={compromissos}
         ehHoje={ehHoje}
         onPressCompromisso={abrirCompromisso}
+      />
+
+      <RecorrenteAcoesModal
+        visivel={recorrenteSelecionado !== null && !confirmarExclusao}
+        compromisso={recorrenteSelecionado}
+        aoFechar={() => setRecorrenteSelecionado(null)}
+        aoEditar={editarRecorrente}
+        aoPular={pularRecorrente}
+        aoExcluir={() => setConfirmarExclusao(true)}
+        aoIrParaMaterias={irParaMaterias}
+      />
+      <ConfirmModal
+        visivel={confirmarExclusao}
+        titulo="Excluir esse compromisso?"
+        mensagem="Todas as ocorrências dele somem da timeline. Não dá pra desfazer."
+        textoConfirmar="Excluir"
+        destrutivo
+        aoConfirmar={confirmarExclusaoRecorrente}
+        aoCancelar={() => setConfirmarExclusao(false)}
       />
     </SafeAreaView>
   );

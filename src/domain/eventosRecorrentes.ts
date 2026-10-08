@@ -220,9 +220,12 @@ export function updateAula(id: number, dados: NovaAula): Aula {
   };
 }
 
-export function deleteAula(id: number): void {
+/** Remove o evento e, em cascata, seus dias da semana e exceções. */
+export function deleteEventoRecorrente(id: number): void {
   db.delete(eventoRecorrente).where(eq(eventoRecorrente.id, id)).run();
 }
+
+export const deleteAula = deleteEventoRecorrente;
 
 export type FrequenciaRecorrencia = 'semanal' | 'mensal' | 'anual';
 
@@ -280,4 +283,60 @@ export function pularOcorrencia(eventoRecorrenteId: number, data: string): void 
   db.insert(eventoRecorrenteExcecao)
     .values({ eventoRecorrenteId, data })
     .run();
+}
+
+export type EventoRecorrenteComDias = EventoRecorrente & { diasSemana: number[] };
+
+export function getEventoRecorrente(
+  id: number,
+): EventoRecorrenteComDias | undefined {
+  const evento = db
+    .select()
+    .from(eventoRecorrente)
+    .where(eq(eventoRecorrente.id, id))
+    .get();
+  if (!evento) return undefined;
+  const dias = db
+    .select({ diaSemana: eventoRecorrenteDiaSemana.diaSemana })
+    .from(eventoRecorrenteDiaSemana)
+    .where(eq(eventoRecorrenteDiaSemana.eventoRecorrenteId, id))
+    .all();
+  return { ...evento, diasSemana: dias.map((d) => d.diaSemana) };
+}
+
+/** Atualiza um compromisso pessoal recorrente (apaga e recria os dias da semana). */
+export function updateEventoRecorrentePessoal(
+  id: number,
+  dados: NovoEventoRecorrentePessoal,
+): EventoRecorrente {
+  const evento = db
+    .update(eventoRecorrente)
+    .set({
+      titulo: dados.titulo,
+      corHex: dados.corHex,
+      frequencia: dados.frequencia,
+      dataBase: dados.dataBase,
+      horaInicio: dados.horaInicio,
+      horaFim: dados.horaFim,
+      observacoes: dados.observacoes,
+    })
+    .where(eq(eventoRecorrente.id, id))
+    .returning()
+    .get();
+
+  db.delete(eventoRecorrenteDiaSemana)
+    .where(eq(eventoRecorrenteDiaSemana.eventoRecorrenteId, id))
+    .run();
+  if (dados.frequencia === 'semanal' && dados.diasSemana.length > 0) {
+    db.insert(eventoRecorrenteDiaSemana)
+      .values(
+        dados.diasSemana.map((diaSemana) => ({
+          eventoRecorrenteId: id,
+          diaSemana,
+        })),
+      )
+      .run();
+  }
+
+  return evento;
 }

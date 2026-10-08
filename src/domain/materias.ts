@@ -1,4 +1,4 @@
-import { asc, count, eq } from 'drizzle-orm';
+import { asc, eq } from 'drizzle-orm';
 
 import { db } from '../db/client';
 import { materia } from '../db/schema';
@@ -20,13 +20,28 @@ export const PALETA_MATERIAS = [
   '#84CC16', // lima
 ] as const;
 
+/** Cor da paleta menos usada no semestre (a primeira em caso de empate), pra
+ * não repetir cor depois de matérias excluídas. */
 function proximaCorDaPaleta(semestreId: number): string {
-  const [{ total }] = db
-    .select({ total: count() })
+  const usadas = db
+    .select({ corHex: materia.corHex })
     .from(materia)
     .where(eq(materia.semestreId, semestreId))
     .all();
-  return PALETA_MATERIAS[total % PALETA_MATERIAS.length];
+  const usosPorCor = new Map<string, number>();
+  for (const { corHex } of usadas) {
+    usosPorCor.set(corHex, (usosPorCor.get(corHex) ?? 0) + 1);
+  }
+  let melhor: string = PALETA_MATERIAS[0];
+  let menorUso = Infinity;
+  for (const cor of PALETA_MATERIAS) {
+    const uso = usosPorCor.get(cor) ?? 0;
+    if (uso < menorUso) {
+      melhor = cor;
+      menorUso = uso;
+    }
+  }
+  return melhor;
 }
 
 export function listMateriasPorSemestre(semestreId: number): Materia[] {

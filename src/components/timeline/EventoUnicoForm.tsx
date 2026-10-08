@@ -13,13 +13,16 @@ import {
 import { CORES_TIPO } from '../../domain/cores';
 import type { NovoEventoUnico } from '../../domain/eventosUnicos';
 import type { FrequenciaRecorrencia } from '../../domain/eventosRecorrentes';
+import {
+  dataValida,
+  horaFimDepoisDeInicio,
+  horaValida,
+} from '../../domain/validacao';
 import { PALETA_MATERIAS } from '../../domain/materias';
 import { colors, font, radii, spacing } from '../../theme/tokens';
 import { DataInput } from '../ui/DataInput';
 import { HoraInput } from '../ui/HoraInput';
 
-const REGEX_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
-const REGEX_DATA = /^\d{4}-\d{2}-\d{2}$/;
 
 export type Repeticao = 'nunca' | FrequenciaRecorrencia;
 
@@ -54,6 +57,8 @@ export function EventoUnicoForm({
   valorInicial,
   rotuloBotao = 'Salvar',
   permiteRepetir = false,
+  repeticaoInicial = 'nunca',
+  diasSemanaIniciais = [],
   aoSalvar,
 }: {
   dataInicial: string;
@@ -61,6 +66,8 @@ export function EventoUnicoForm({
   rotuloBotao?: string;
   /** Mostra o seletor "Repetir" — só faz sentido ao criar um compromisso novo. */
   permiteRepetir?: boolean;
+  repeticaoInicial?: Repeticao;
+  diasSemanaIniciais?: number[];
   aoSalvar: (
     dados: NovoEventoUnico,
     repeticao: Repeticao,
@@ -77,8 +84,8 @@ export function EventoUnicoForm({
     ...valorInicial,
   });
   const [erro, setErro] = useState<string | null>(null);
-  const [repeticao, setRepeticao] = useState<Repeticao>('nunca');
-  const [diasSemana, setDiasSemana] = useState<number[]>([]);
+  const [repeticao, setRepeticao] = useState<Repeticao>(repeticaoInicial);
+  const [diasSemana, setDiasSemana] = useState<number[]>(diasSemanaIniciais);
 
   function atualizar<K extends keyof ValorFormularioEvento>(
     campo: K,
@@ -86,6 +93,12 @@ export function EventoUnicoForm({
   ) {
     setValor((atual) => ({ ...atual, [campo]: novoValor }));
   }
+
+  // Um compromisso que já é recorrente não volta a ser avulso por aqui.
+  const opcoesRepeticao =
+    repeticaoInicial === 'nunca'
+      ? OPCOES_REPETICAO
+      : OPCOES_REPETICAO.filter((o) => o.valor !== 'nunca');
 
   function alternarDia(dia: number) {
     setDiasSemana((atual) =>
@@ -103,16 +116,20 @@ export function EventoUnicoForm({
         setErro('Escolha pelo menos um dia da semana.');
         return;
       }
-    } else if (!REGEX_DATA.test(valor.data)) {
+    } else if (!dataValida(valor.data)) {
       setErro('Data inválida — use o formato AAAA-MM-DD.');
       return;
     }
-    if (!REGEX_HORA.test(valor.horaInicio)) {
+    if (!horaValida(valor.horaInicio)) {
       setErro('Hora de início inválida — use o formato HH:MM.');
       return;
     }
-    if (valor.horaFim && !REGEX_HORA.test(valor.horaFim)) {
+    if (valor.horaFim && !horaValida(valor.horaFim)) {
       setErro('Hora de fim inválida — use o formato HH:MM.');
+      return;
+    }
+    if (valor.horaFim && !horaFimDepoisDeInicio(valor.horaInicio, valor.horaFim)) {
+      setErro('A hora de fim precisa ser depois da hora de início.');
       return;
     }
     setErro(null);
@@ -152,7 +169,7 @@ export function EventoUnicoForm({
         <>
           <Text style={styles.rotulo}>Repetir</Text>
           <View style={styles.chips}>
-            {OPCOES_REPETICAO.map((opcao) => {
+            {opcoesRepeticao.map((opcao) => {
               const selecionada = opcao.valor === repeticao;
               return (
                 <Pressable

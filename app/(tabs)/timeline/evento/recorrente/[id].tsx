@@ -4,36 +4,56 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { EventoUnicoForm } from '../../../../src/components/timeline/EventoUnicoForm';
-import { CabecalhoTela } from '../../../../src/components/ui/CabecalhoTela';
-import { ConfirmModal } from '../../../../src/components/ui/ConfirmModal';
 import {
-  deleteEventoUnico,
-  getEventoUnico,
-  NovoEventoUnico,
-  updateEventoUnico,
-} from '../../../../src/domain/eventosUnicos';
-import { colors, font, spacing } from '../../../../src/theme/tokens';
+  EventoUnicoForm,
+  type Repeticao,
+} from '../../../../../src/components/timeline/EventoUnicoForm';
+import { CabecalhoTela } from '../../../../../src/components/ui/CabecalhoTela';
+import { ConfirmModal } from '../../../../../src/components/ui/ConfirmModal';
+import {
+  deleteEventoRecorrente,
+  getEventoRecorrente,
+  updateEventoRecorrentePessoal,
+} from '../../../../../src/domain/eventosRecorrentes';
+import type { NovoEventoUnico } from '../../../../../src/domain/eventosUnicos';
+import { colors, font, spacing } from '../../../../../src/theme/tokens';
 
-export default function DetalheEventoScreen() {
+export default function DetalheRecorrenteScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const eventoId = Number(id);
-
+  const evento = getEventoRecorrente(eventoId);
   const [confirmarExclusao, setConfirmarExclusao] = useState(false);
-  const evento = getEventoUnico(eventoId);
 
   const mutacaoSalvar = useMutation({
-    mutationFn: (dados: NovoEventoUnico) =>
-      Promise.resolve(updateEventoUnico(eventoId, dados)),
+    mutationFn: (variaveis: {
+      dados: NovoEventoUnico;
+      repeticao: Repeticao;
+      diasSemana: number[];
+    }) =>
+      Promise.resolve(
+        updateEventoRecorrentePessoal(eventoId, {
+          titulo: variaveis.dados.titulo,
+          corHex: variaveis.dados.corHex,
+          // O formulário oferece "Nunca", mas aqui o evento já é recorrente:
+          // nesse caso mantém semanal em vez de converter para avulso.
+          frequencia:
+            variaveis.repeticao === 'nunca' ? 'semanal' : variaveis.repeticao,
+          dataBase: variaveis.dados.data,
+          diasSemana: variaveis.diasSemana,
+          horaInicio: variaveis.dados.horaInicio,
+          horaFim: variaveis.dados.horaFim ?? null,
+          observacoes: variaveis.dados.observacoes ?? null,
+        }),
+      ),
     onSuccess: () => router.back(),
   });
 
   const mutacaoExcluir = useMutation({
-    mutationFn: () => Promise.resolve(deleteEventoUnico(eventoId)),
+    mutationFn: () => Promise.resolve(deleteEventoRecorrente(eventoId)),
     onSuccess: () => router.back(),
   });
 
-  if (!evento) {
+  if (!evento || evento.tipo === 'aula') {
     return (
       <SafeAreaView style={styles.telaVazia} edges={['top']}>
         <CabecalhoTela titulo="Compromisso" />
@@ -48,31 +68,34 @@ export default function DetalheEventoScreen() {
     <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
       <CabecalhoTela titulo="Editar compromisso" />
       <EventoUnicoForm
-        dataInicial={evento.data}
+        dataInicial={evento.dataBase}
         rotuloBotao="Salvar alterações"
+        permiteRepetir
+        repeticaoInicial={evento.frequencia}
+        diasSemanaIniciais={evento.diasSemana}
         valorInicial={{
           titulo: evento.titulo,
-          data: evento.data,
+          data: evento.dataBase,
           horaInicio: evento.horaInicio,
           horaFim: evento.horaFim ?? '',
-          corHex: evento.corHex,
+          corHex: evento.corHex ?? undefined,
           observacoes: evento.observacoes ?? '',
         }}
-        aoSalvar={(dados) => mutacaoSalvar.mutate(dados)}
+        aoSalvar={(dados, repeticao, diasSemana) =>
+          mutacaoSalvar.mutate({ dados, repeticao, diasSemana })
+        }
       />
       <Pressable
         style={styles.botaoExcluir}
         onPress={() => setConfirmarExclusao(true)}
         disabled={mutacaoExcluir.isPending}
       >
-        <Text style={styles.botaoExcluirTexto}>
-          {mutacaoExcluir.isPending ? 'Excluindo…' : 'Excluir compromisso'}
-        </Text>
+        <Text style={styles.botaoExcluirTexto}>Excluir compromisso</Text>
       </Pressable>
       <ConfirmModal
         visivel={confirmarExclusao}
         titulo="Excluir esse compromisso?"
-        mensagem="Não dá pra desfazer."
+        mensagem="Todas as ocorrências dele somem da timeline. Não dá pra desfazer."
         textoConfirmar="Excluir"
         destrutivo
         aoConfirmar={() => {

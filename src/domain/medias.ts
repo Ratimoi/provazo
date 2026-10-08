@@ -2,26 +2,7 @@ import { and, eq, isNotNull, sql } from 'drizzle-orm';
 
 import { db } from '../db/client';
 import { avaliacao, materia } from '../db/schema';
-
-/**
- * Média ponderada = Σ(nota × peso) / Σ(peso), considerando só avaliações
- * com nota lançada. Retorna null se a matéria ainda não tem nenhuma nota.
- */
-export function calcularMediaPorMateria(materiaId: number): number | null {
-  const linha = db
-    .select({
-      somaPonderada: sql<number | null>`sum(${avaliacao.nota} * ${avaliacao.peso})`,
-      somaPesos: sql<number | null>`sum(${avaliacao.peso})`,
-    })
-    .from(avaliacao)
-    .where(
-      and(eq(avaliacao.materiaId, materiaId), isNotNull(avaliacao.nota)),
-    )
-    .get();
-
-  if (!linha || !linha.somaPesos) return null;
-  return linha.somaPonderada! / linha.somaPesos;
-}
+import { mediaPonderada } from './mediaPonderada';
 
 export type MediaPorMateria = {
   materiaId: number;
@@ -30,14 +11,18 @@ export type MediaPorMateria = {
   media: number | null;
 };
 
-/** Média ponderada de cada matéria de um semestre, numa única query agregada. */
+/**
+ * Média ponderada de cada matéria de um semestre, numa única query agregada.
+ * Cada nota é normalizada pela nota máxima da avaliação (escala de 0 a 10),
+ * então provas de 0–10 e de 0–100 podem conviver na mesma matéria.
+ */
 export function listarMediasPorSemestre(semestreId: number): MediaPorMateria[] {
   return db
     .select({
       materiaId: materia.id,
       materiaNome: materia.nome,
       corHex: materia.corHex,
-      somaPonderada: sql<number | null>`sum(${avaliacao.nota} * ${avaliacao.peso})`,
+      somaNormalizada: sql<number | null>`sum(${avaliacao.nota} * 1.0 / ${avaliacao.notaMaxima} * ${avaliacao.peso})`,
       somaPesos: sql<number | null>`sum(${avaliacao.peso})`,
     })
     .from(materia)
@@ -52,6 +37,6 @@ export function listarMediasPorSemestre(semestreId: number): MediaPorMateria[] {
       materiaId: linha.materiaId,
       materiaNome: linha.materiaNome,
       corHex: linha.corHex,
-      media: linha.somaPesos ? linha.somaPonderada! / linha.somaPesos : null,
+      media: mediaPonderada(linha.somaNormalizada, linha.somaPesos),
     }));
 }

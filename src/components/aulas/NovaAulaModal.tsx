@@ -13,8 +13,11 @@ import type { NovaAula } from '../../domain/eventosRecorrentes';
 import { colors, font, radii, shadow, spacing } from '../../theme/tokens';
 import { BottomSheetModal } from '../ui/BottomSheetModal';
 import { HoraInput } from '../ui/HoraInput';
+import {
+  horaFimDepoisDeInicio,
+  horaValida,
+} from '../../domain/validacao';
 
-const REGEX_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
 const DIAS = [
   { valor: 1, rotulo: 'Seg' },
   { valor: 2, rotulo: 'Ter' },
@@ -82,12 +85,16 @@ export function NovaAulaModal({
       setErroLocal('Escolha o dia da semana.');
       return;
     }
-    if (!REGEX_HORA.test(horaInicio)) {
+    if (!horaValida(horaInicio)) {
       setErroLocal('Hora de início inválida — use o formato HH:MM.');
       return;
     }
-    if (!REGEX_HORA.test(horaFim)) {
+    if (!horaValida(horaFim)) {
       setErroLocal('Hora de fim inválida — use o formato HH:MM.');
+      return;
+    }
+    if (!horaFimDepoisDeInicio(horaInicio, horaFim)) {
+      setErroLocal('A hora de fim precisa ser depois da hora de início.');
       return;
     }
     setErroLocal(null);

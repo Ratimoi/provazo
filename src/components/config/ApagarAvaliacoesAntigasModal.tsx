@@ -2,11 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { contarAvaliacoesAntesDe } from '../../domain/sistema';
+import { dataValida as ehDataValida } from '../../domain/validacao';
 import { colors, font, radii, spacing } from '../../theme/tokens';
 import { BottomSheetModal } from '../ui/BottomSheetModal';
 import { DataInput } from '../ui/DataInput';
-
-const REGEX_DATA = /^\d{4}-\d{2}-\d{2}$/;
 
 export function ApagarAvaliacoesAntigasModal({
   visivel,
@@ -25,7 +24,7 @@ export function ApagarAvaliacoesAntigasModal({
     if (visivel) setDataCorte('');
   }, [visivel]);
 
-  const dataValida = REGEX_DATA.test(dataCorte);
+  const dataValida = ehDataValida(dataCorte);
   const quantidade = useMemo(
     () => (dataValida ? contarAvaliacoesAntesDe(dataCorte) : null),
     [dataCorte, dataValida],
