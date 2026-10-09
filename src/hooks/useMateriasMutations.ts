@@ -2,12 +2,11 @@ import { useMutation } from '@tanstack/react-query';
 
 import { mensagemAmigavel } from '../domain/erros';
 import {
-  createAula,
-  deleteAula,
-  NovaAula,
-  updateAula,
-} from '../domain/eventosRecorrentes';
-import { createMateria, deleteMateria, updateMateria } from '../domain/materias';
+  createMateriaComAulas,
+  deleteMateria,
+  type HorarioDaMateria,
+  updateMateriaComAulas,
+} from '../domain/materias';
 
 /** Roda a escrita síncrona do banco e converte erros do SQLite em mensagem
  * legível. As consultas são invalidadas pelo listener global do banco. */
@@ -25,36 +24,33 @@ function nomeObrigatorio(nome: string): string {
   return limpo;
 }
 
+export type DadosSalvarMateria = {
+  nome: string;
+  corHex: string;
+  instituicao: string | null;
+  horarios: HorarioDaMateria[];
+};
+
 export function useMateriasMutations(semestreId: number) {
   const criarMateria = useMutation({
-    mutationFn: (v: {
-      nome: string;
-      corHex: string | null;
-      instituicao: string | null;
-    }) =>
+    mutationFn: (v: DadosSalvarMateria) =>
       comMensagemAmigavel(() =>
-        createMateria(
+        createMateriaComAulas(
           semestreId,
-          nomeObrigatorio(v.nome),
-          v.corHex ?? undefined,
-          v.instituicao,
+          { nome: nomeObrigatorio(v.nome), corHex: v.corHex, instituicao: v.instituicao },
+          v.horarios,
         ),
       ),
   });
 
   const editarMateria = useMutation({
-    mutationFn: (v: {
-      id: number;
-      nome: string;
-      corHex: string;
-      instituicao: string | null;
-    }) =>
+    mutationFn: (v: DadosSalvarMateria & { id: number }) =>
       comMensagemAmigavel(() =>
-        updateMateria(v.id, {
-          nome: nomeObrigatorio(v.nome),
-          corHex: v.corHex,
-          instituicao: v.instituicao,
-        }),
+        updateMateriaComAulas(
+          v.id,
+          { nome: nomeObrigatorio(v.nome), corHex: v.corHex, instituicao: v.instituicao },
+          v.horarios,
+        ),
       ),
   });
 
@@ -62,25 +58,5 @@ export function useMateriasMutations(semestreId: number) {
     mutationFn: (id: number) => Promise.resolve(deleteMateria(id)),
   });
 
-  const criarAula = useMutation({
-    mutationFn: (dados: NovaAula) => comMensagemAmigavel(() => createAula(dados)),
-  });
-
-  const editarAula = useMutation({
-    mutationFn: (v: { id: number; dados: NovaAula }) =>
-      comMensagemAmigavel(() => updateAula(v.id, v.dados)),
-  });
-
-  const excluirAula = useMutation({
-    mutationFn: (id: number) => Promise.resolve(deleteAula(id)),
-  });
-
-  return {
-    criarMateria,
-    editarMateria,
-    excluirMateria,
-    criarAula,
-    editarAula,
-    excluirAula,
-  };
+  return { criarMateria, editarMateria, excluirMateria };
 }

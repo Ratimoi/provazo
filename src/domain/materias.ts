@@ -1,7 +1,8 @@
-import { asc, eq } from 'drizzle-orm';
+import { and, asc, eq } from 'drizzle-orm';
 
 import { db } from '../db/client';
-import { materia } from '../db/schema';
+import { eventoRecorrente, materia } from '../db/schema';
+import { createAula, deleteAula, updateAula } from './eventosRecorrentes';
 
 export type Materia = typeof materia.$inferSelect;
 
@@ -22,7 +23,7 @@ export const PALETA_MATERIAS = [
 
 /** Cor da paleta menos usada no semestre (a primeira em caso de empate), pra
  * não repetir cor depois de matérias excluídas. */
-function proximaCorDaPaleta(semestreId: number): string {
+export function proximaCorDaPaleta(semestreId: number): string {
   const usadas = db
     .select({ corHex: materia.corHex })
     .from(materia)
@@ -101,4 +102,89 @@ export function updateMateria(
 
 export function deleteMateria(id: number): void {
   db.delete(materia).where(eq(materia.id, id)).run();
+}
+
+/** Um horário de aula semanal de uma matéria (o `id` só existe se já foi salvo). */
+export type HorarioDaMateria = {
+  id?: number;
+  diaSemana: number;
+  horaInicio: string;
+  horaFim: string;
+  observacoes: string | null;
+};
+
+export type DadosDaMateria = {
+  nome: string;
+  corHex?: string;
+  instituicao: string | null;
+};
+
+/** Cria a matéria e todos os horários de aula de uma vez (tudo ou nada). */
+export function createMateriaComAulas(
+  semestreId: number,
+  dados: DadosDaMateria,
+  horarios: HorarioDaMateria[],
+): Materia {
+  return db.transaction(() => {
+    const nova = createMateria(
+      semestreId,
+      dados.nome,
+      dados.corHex,
+      dados.instituicao,
+    );
+    for (const h of horarios) {
+      createAula({
+        materiaId: nova.id,
+        titulo: nova.nome,
+        diasSemana: [h.diaSemana],
+        horaInicio: h.horaInicio,
+        horaFim: h.horaFim,
+        observacoes: h.observacoes,
+      });
+    }
+    return nova;
+  });
+}
+
+/**
+ * Atualiza a matéria e sincroniza os horários: os que já tinham `id` são
+ * atualizados, os novos criados e os que sumiram da lista, apagados.
+ */
+export function updateMateriaComAulas(
+  id: number,
+  dados: Required<Pick<DadosDaMateria, 'corHex'>> & DadosDaMateria,
+  horarios: HorarioDaMateria[],
+): Materia {
+  return db.transaction(() => {
+    const atualizada = updateMateria(id, {
+      nome: dados.nome,
+      corHex: dados.corHex,
+      instituicao: dados.instituicao,
+    });
+
+    const existentes = db
+      .select({ id: eventoRecorrente.id })
+      .from(eventoRecorrente)
+      .where(and(eq(eventoRecorrente.materiaId, id), eq(eventoRecorrente.tipo, 'aula')))
+      .all()
+      .map((e) => e.id);
+    const mantidos = new Set(horarios.flatMap((h) => (h.id != null ? [h.id] : [])));
+
+    for (const idAula of existentes) {
+      if (!mantidos.has(idAula)) deleteAula(idAula);
+    }
+    for (const h of horarios) {
+      const aula = {
+        materiaId: id,
+        titulo: atualizada.nome,
+        diasSemana: [h.diaSemana],
+        horaInicio: h.horaInicio,
+        horaFim: h.horaFim,
+        observacoes: h.observacoes,
+      };
+      if (h.id != null && existentes.includes(h.id)) updateAula(h.id, aula);
+      else createAula(aula);
+    }
+    return atualizada;
+  });
 }

@@ -3,17 +3,9 @@ import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import type { Materia } from '../../domain/materias';
+import { normalizar } from '../../domain/texto';
 import { colors, font, radii, spacing } from '../../theme/tokens';
 import { BottomSheetModal } from '../ui/BottomSheetModal';
-
-/** Ignora acentos na busca, pra "calculo" achar "Cálculo". */
-function normalizar(texto: string): string {
-  return texto
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .trim();
-}
 
 export function SelecionarMateriaModal({
   visivel,

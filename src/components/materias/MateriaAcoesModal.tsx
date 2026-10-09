@@ -10,14 +10,12 @@ export function MateriaAcoesModal({
   materia,
   aoFechar,
   aoEditar,
-  aoGerenciarAulas,
   aoExcluir,
 }: {
   visivel: boolean;
   materia: Materia | null;
   aoFechar: () => void;
   aoEditar: () => void;
-  aoGerenciarAulas: () => void;
   aoExcluir: () => void;
 }) {
   if (!materia) return null;
@@ -29,8 +27,7 @@ export function MateriaAcoesModal({
         <Text style={styles.titulo}>{materia.nome}</Text>
       </View>
 
-      <Linha icone="create-outline" texto="Editar matéria" onPress={aoEditar} />
-      <Linha icone="time-outline" texto="Aulas" onPress={aoGerenciarAulas} />
+      <Linha icone="create-outline" texto="Editar matéria e horários" onPress={aoEditar} />
       <Linha
         icone="trash-outline"
         texto="Excluir matéria"

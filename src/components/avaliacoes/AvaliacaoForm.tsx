@@ -13,11 +13,20 @@ import {
 
 import type { Materia } from '../../domain/materias';
 import type { NovaAvaliacao } from '../../domain/avaliacoes';
+import { listHorariosUsados } from '../../domain/apoioSeletores';
 import { dataValida, horaValida, notaValida } from '../../domain/validacao';
 import { colors, font, radii, spacing } from '../../theme/tokens';
-import { DataInput } from '../ui/DataInput';
-import { HoraInput } from '../ui/HoraInput';
+import { CampoToque } from '../ui/CampoToque';
+import { DataPicker } from '../ui/DataPicker';
+import { HoraPicker } from '../ui/HoraPicker';
 import { SelecionarMateriaModal } from './SelecionarMateriaModal';
+
+const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+
+function formatarDataCampo(iso: string): string {
+  const [ano, mes, dia] = iso.split('-').map(Number);
+  return `${dia} de ${MESES[mes - 1]} de ${ano}`;
+}
 
 export type ValorFormularioAvaliacao = {
   materiaId: number | null;
@@ -73,6 +82,8 @@ export function AvaliacaoForm({
   });
   const [erro, setErro] = useState<string | null>(null);
   const [modalMateriaAberto, setModalMateriaAberto] = useState(false);
+  const [seletor, setSeletor] = useState<'data' | 'hora' | null>(null);
+  const [sugestoes, setSugestoes] = useState<string[]>([]);
 
   const materiaSelecionada = materias.find((m) => m.id === valor.materiaId);
 
@@ -93,11 +104,11 @@ export function AvaliacaoForm({
       return null;
     }
     if (!dataValida(valor.data)) {
-      setErro('Data inválida — use o formato AAAA-MM-DD.');
+      setErro('Escolha a data da avaliação.');
       return null;
     }
     if (!horaValida(valor.hora)) {
-      setErro('Hora inválida — use o formato HH:MM.');
+      setErro('Escolha a hora da avaliação.');
       return null;
     }
     const peso = Number(valor.peso.replace(',', '.'));
@@ -207,18 +218,23 @@ export function AvaliacaoForm({
       <View style={styles.linha}>
         <View style={styles.metade}>
           <Text style={styles.rotulo}>Data</Text>
-          <DataInput
-            style={styles.input}
-            value={valor.data}
-            onChangeText={(v) => atualizar('data', v)}
+          <CampoToque
+            valor={dataValida(valor.data) ? formatarDataCampo(valor.data) : ''}
+            placeholder="Escolher dia"
+            icone="calendar-outline"
+            aoPressionar={() => setSeletor('data')}
           />
         </View>
         <View style={styles.metade}>
           <Text style={styles.rotulo}>Hora</Text>
-          <HoraInput
-            style={styles.input}
-            value={valor.hora}
-            onChangeText={(v) => atualizar('hora', v)}
+          <CampoToque
+            valor={valor.hora}
+            placeholder="--:--"
+            grande
+            aoPressionar={() => {
+              setSugestoes(listHorariosUsados());
+              setSeletor('hora');
+            }}
           />
         </View>
       </View>
@@ -288,6 +304,28 @@ export function AvaliacaoForm({
       </Pressable>
     </ScrollView>
     </KeyboardAvoidingView>
+      <DataPicker
+        visivel={seletor === 'data'}
+        titulo={valor.tipo === 'prova' ? 'Data da prova' : 'Data de entrega'}
+        valor={valor.data}
+        aoFechar={() => setSeletor(null)}
+        aoConfirmar={(data) => {
+          atualizar('data', data);
+          setSeletor(null);
+        }}
+      />
+      <HoraPicker
+        visivel={seletor === 'hora'}
+        titulo={valor.tipo === 'prova' ? 'Hora da prova' : 'Hora da entrega'}
+        valor={valor.hora}
+        sugestoes={sugestoes}
+        permiteFimDoDia
+        aoFechar={() => setSeletor(null)}
+        aoConfirmar={(hora) => {
+          atualizar('hora', hora);
+          setSeletor(null);
+        }}
+      />
       <SelecionarMateriaModal
         visivel={modalMateriaAberto}
         materias={materias}
