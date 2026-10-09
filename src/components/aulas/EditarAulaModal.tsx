@@ -4,9 +4,12 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { listHorariosUsados } from '../../domain/apoioSeletores';
 import { mensagemAmigavel } from '../../domain/erros';
+import { db } from '../../db/client';
 import {
+  createAula,
   deleteAula,
   getEventoRecorrente,
+  type NovaAula,
   updateAula,
 } from '../../domain/eventosRecorrentes';
 import { duracaoEmMinutos, somarMinutos, validarHorario } from '../../domain/horarios';
@@ -63,9 +66,18 @@ export function EditarAulaModal({
   }, [visivel, aula]);
 
   const salvar = useMutation({
-    mutationFn: (dados: Parameters<typeof updateAula>[1]) => {
+    mutationFn: (dados: NovaAula) => {
       try {
-        return Promise.resolve(updateAula(aula!.origemId, dados));
+        // Cada dia marcado é uma aula separada: o primeiro atualiza esta aula e os
+        // demais viram aulas novas, com o mesmo horário.
+        const [primeiro, ...outros] = [...dados.diasSemana].sort(
+          (a, b) => (a || 7) - (b || 7),
+        );
+        db.transaction(() => {
+          updateAula(aula!.origemId, { ...dados, diasSemana: [primeiro] });
+          for (const dia of outros) createAula({ ...dados, diasSemana: [dia] });
+        });
+        return Promise.resolve();
       } catch (e) {
         throw new Error(mensagemAmigavel(e) ?? 'Não foi possível salvar.');
       }
@@ -150,6 +162,11 @@ export function EditarAulaModal({
         </View>
 
         <Text style={styles.rotulo}>Dia da semana</Text>
+        <Text style={styles.dicaDias}>
+          {dias.length > 1
+            ? `${dias.length} dias: cada um vira uma aula separada, no mesmo horário`
+            : 'Marque mais de um dia pra repetir o mesmo horário'}
+        </Text>
         <View style={styles.chipsDias}>
           {DIAS.map((d) => {
             const ativo = dias.includes(d.valor);
@@ -302,6 +319,13 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
     marginTop: spacing.lg,
     marginBottom: spacing.sm,
+  },
+  dicaDias: {
+    fontFamily: font.body,
+    fontSize: 12.5,
+    color: colors.inkSoft,
+    marginBottom: spacing.sm,
+    marginTop: -spacing.xs,
   },
   chipsDias: {
     flexDirection: 'row',
