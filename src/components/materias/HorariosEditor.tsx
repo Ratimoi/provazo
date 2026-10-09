@@ -90,6 +90,8 @@ export function HorariosEditor({
   const [seletor, setSeletor] = useState<'inicio' | 'fim' | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [sugestoes, setSugestoes] = useState<string[]>([]);
+  // Chave do horário carregado no editor pra alteração; null = adicionando um novo.
+  const [editandoChave, setEditandoChave] = useState<string | null>(null);
 
   function abrirSeletor(qual: 'inicio' | 'fim') {
     setSugestoes(listHorariosUsados());
@@ -129,18 +131,44 @@ export function HorariosEditor({
       return;
     }
     setErro(null);
-    aoMudar([
-      ...horarios,
-      {
-        chave: novaChave(),
-        diaSemana: novo.diaSemana,
-        horaInicio: novo.horaInicio,
-        horaFim: novo.horaFim,
-        observacoes: novo.observacoes.trim(),
-      },
-    ]);
+    const dados = {
+      diaSemana: novo.diaSemana,
+      horaInicio: novo.horaInicio,
+      horaFim: novo.horaFim,
+      observacoes: novo.observacoes.trim(),
+    };
+    if (editandoChave) {
+      // Mantém a chave e o id do banco: é uma alteração, não um horário novo.
+      aoMudar(horarios.map((h) => (h.chave === editandoChave ? { ...h, ...dados } : h)));
+    } else {
+      aoMudar([...horarios, { chave: novaChave(), ...dados }]);
+    }
     // Volta ao editor vazio, pronto pro próximo horário.
+    setEditandoChave(null);
     setNovo(NOVO_VAZIO);
+  }
+
+  /** Carrega um horário já salvo no editor, pra mudar dia, hora ou sala. */
+  function editar(horario: HorarioRascunho) {
+    setEditandoChave(horario.chave);
+    setNovo({
+      diaSemana: horario.diaSemana,
+      horaInicio: horario.horaInicio,
+      horaFim: horario.horaFim,
+      observacoes: horario.observacoes,
+    });
+    setErro(null);
+  }
+
+  function cancelarEdicao() {
+    setEditandoChave(null);
+    setNovo(NOVO_VAZIO);
+    setErro(null);
+  }
+
+  function remover(chave: string) {
+    if (chave === editandoChave) cancelarEdicao();
+    aoMudar(horarios.filter((x) => x.chave !== chave));
   }
 
   const duracaoAtual =
@@ -151,7 +179,14 @@ export function HorariosEditor({
   return (
     <View style={styles.container}>
       {horarios.map((h) => (
-        <View key={h.chave} style={styles.linha}>
+        <Pressable
+          key={h.chave}
+          onPress={() => editar(h)}
+          onLongPress={() => editar(h)}
+          delayLongPress={350}
+          style={[styles.linha, h.chave === editandoChave && styles.linhaEditando]}
+          accessibilityLabel={`Editar horário de ${NOME_DIA[h.diaSemana]}, ${h.horaInicio} a ${h.horaFim}`}
+        >
           <View style={styles.dia}>
             <Text style={styles.diaTexto}>{NOME_DIA[h.diaSemana].slice(0, 3)}</Text>
           </View>
@@ -165,18 +200,20 @@ export function HorariosEditor({
               </Text>
             ) : null}
           </View>
-          <Pressable
-            hitSlop={10}
-            onPress={() => aoMudar(horarios.filter((x) => x.chave !== h.chave))}
-          >
+          <Ionicons name="create-outline" size={18} color={colors.inkSoft} />
+          <Pressable hitSlop={10} onPress={() => remover(h.chave)}>
             <Ionicons name="close" size={20} color={colors.inkSoft} />
           </Pressable>
-        </View>
+        </Pressable>
       ))}
 
       <View style={styles.editor}>
         <Text style={styles.editorTitulo}>
-          {horarios.length === 0 ? 'Horário da aula' : 'Novo horário'}
+          {editandoChave
+            ? 'Editando horário'
+            : horarios.length === 0
+              ? 'Horário da aula'
+              : 'Novo horário'}
         </Text>
 
         <View style={styles.chipsDias}>
@@ -240,9 +277,16 @@ export function HorariosEditor({
         ))}
 
         <Pressable style={styles.botaoAdicionar} onPress={adicionar}>
-          <Ionicons name="add" size={18} color={colors.brand} />
-          <Text style={styles.botaoAdicionarTexto}>Adicionar horário</Text>
+          <Ionicons name={editandoChave ? 'checkmark' : 'add'} size={18} color={colors.brand} />
+          <Text style={styles.botaoAdicionarTexto}>
+            {editandoChave ? 'Atualizar horário' : 'Adicionar horário'}
+          </Text>
         </Pressable>
+        {editandoChave && (
+          <Pressable style={styles.botaoCancelarEdicao} onPress={cancelarEdicao}>
+            <Text style={styles.botaoCancelarEdicaoTexto}>Cancelar alteração</Text>
+          </Pressable>
+        )}
       </View>
 
       <HoraPicker
@@ -270,6 +314,20 @@ const styles = StyleSheet.create({
     borderRadius: radii.md + 2,
     padding: spacing.md - 2,
     ...shadow.card,
+  },
+  linhaEditando: {
+    borderWidth: 1.5,
+    borderColor: colors.brand,
+  },
+  botaoCancelarEdicao: {
+    minHeight: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  botaoCancelarEdicaoTexto: {
+    fontFamily: font.bodyMedium,
+    fontSize: 14,
+    color: colors.inkSoft,
   },
   dia: {
     width: 40,
