@@ -1,4 +1,4 @@
-import { asc, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, isNull, sql } from 'drizzle-orm';
 
 import { db } from '../db/client';
 import { avaliacao, materia } from '../db/schema';
@@ -68,6 +68,15 @@ export function listAvaliacoesPorData(data: string): AvaliacaoComMateria[] {
   return selecionarComMateria()
     .where(eq(avaliacao.data, data))
     .orderBy(asc(avaliacao.hora))
+    .all();
+}
+
+/** Avaliações de qualquer semestre, de `aPartirDe` em diante, ainda sem nota
+ * (usadas pra agendar os lembretes). */
+export function listAvaliacoesPendentes(aPartirDe: string): AvaliacaoComMateria[] {
+  return selecionarComMateria()
+    .where(and(gte(avaliacao.data, aPartirDe), isNull(avaliacao.nota)))
+    .orderBy(asc(avaliacao.data), asc(avaliacao.hora))
     .all();
 }
 

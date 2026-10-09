@@ -21,7 +21,13 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { db } from '../src/db/client';
 import migrations from '../src/db/migrations/migrations';
 import { AtualizacaoBanner } from '../src/components/ui/AtualizacaoBanner';
+import {
+  configurarNotificacoes,
+  sincronizarLembretes,
+} from '../src/domain/lembretes';
 import { colors } from '../src/theme/tokens';
+
+configurarNotificacoes();
 
 // Tudo é local (SQLite), então qualquer escrita pode afetar qualquer tela.
 // As abas ficam montadas em segundo plano, por isso o refetch é 'all': sem
@@ -69,20 +75,24 @@ export default function RootLayout() {
   }, []);
 
   // Escritas feitas fora de uma mutation (ex: pular ocorrência, resets) também
-  // precisam atualizar as telas.
+  // precisam atualizar as telas — e os lembretes agendados acompanham o banco.
+  // Só depois das migrações, porque a leitura de preferências precisa da tabela.
   useEffect(() => {
+    if (!migracoesOk) return;
+    sincronizarLembretes();
     let timer: ReturnType<typeof setTimeout> | undefined;
     const assinatura = addDatabaseChangeListener(() => {
       clearTimeout(timer);
       timer = setTimeout(() => {
         queryClient.invalidateQueries({ refetchType: 'all' });
+        sincronizarLembretes();
       }, 50);
     });
     return () => {
       clearTimeout(timer);
       assinatura.remove();
     };
-  }, []);
+  }, [migracoesOk]);
 
   if (erroMigracao) {
     return (

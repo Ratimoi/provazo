@@ -16,3 +16,12 @@ git push -u origin feature/nome-da-feature
 ```
 
 Quando `dev` estiver estável, abrir PR `dev -> main`.
+
+## Versões e atualizações OTA
+
+- `version` (em `app.json`) aparece em Configurações > Sobre e sobe a cada entrega.
+- `runtimeVersion` é uma string fixa: só muda quando o código **nativo** muda
+  (módulo Expo novo, plugin, atualização do SDK). Um APK só recebe atualizações
+  OTA da mesma `runtimeVersion`; por isso, ao mudar o valor, gere um APK novo
+  (`eas build --profile preview`) e instale **antes** de mergear na `main`.
+- Mudanças só de JS mantêm a `runtimeVersion` e chegam por OTA ao mergear na `main`.

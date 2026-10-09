@@ -2,13 +2,33 @@ import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ApagarAvaliacoesAntigasModal } from '../../../src/components/config/ApagarAvaliacoesAntigasModal';
 import { ApagarSemestreModal } from '../../../src/components/config/ApagarSemestreModal';
 import { ResetFabricaModal } from '../../../src/components/config/ResetFabricaModal';
 import { ConfirmModal } from '../../../src/components/ui/ConfirmModal';
+import { HoraInput } from '../../../src/components/ui/HoraInput';
+import { restaurarBackup } from '../../../src/domain/backup';
+import { exportarBackup, lerArquivoDeBackup } from '../../../src/domain/backupArquivo';
+import { type Backup, resumirBackup } from '../../../src/domain/backupFormato';
+import { pedirPermissao } from '../../../src/domain/lembretes';
+import {
+  definirHoraLembrete,
+  definirLembretesAtivos,
+  horaLembrete,
+  lembretesAtivos,
+} from '../../../src/domain/preferencias';
+import { horaValida } from '../../../src/domain/validacao';
 import { deleteSemestre } from '../../../src/domain/semestres';
 import {
   apagarAvaliacoesAntesDe,
@@ -50,6 +70,9 @@ export default function ConfiguracoesScreen() {
   const [confirmExcluirSemestre, setConfirmExcluirSemestre] =
     useState<SemestreComContagem | null>(null);
   const [confirmTarefasConcluidas, setConfirmTarefasConcluidas] = useState(false);
+  const [backupPendente, setBackupPendente] = useState<Backup | null>(null);
+  const [lembretesLigados, setLembretesLigados] = useState(() => lembretesAtivos());
+  const [horaAviso, setHoraAviso] = useState(() => horaLembrete());
   const [modalResetFabrica, setModalResetFabrica] = useState(false);
 
   // As outras telas atualizam sozinhas: toda escrita no banco invalida as
@@ -80,6 +103,58 @@ export default function ConfiguracoesScreen() {
     apagarTarefasConcluidas();
     setConfirmTarefasConcluidas(false);
     atualizarTudo();
+  }
+
+  async function alternarLembretes(ligar: boolean) {
+    if (ligar && !(await pedirPermissao())) {
+      Alert.alert(
+        'Permissão necessária',
+        'Ative as notificações do Provazo nas configurações do Android pra receber os lembretes.',
+      );
+      return;
+    }
+    definirLembretesAtivos(ligar);
+    setLembretesLigados(ligar);
+  }
+
+  function alterarHoraAviso(hora: string) {
+    setHoraAviso(hora);
+    if (horaValida(hora)) definirHoraLembrete(hora);
+  }
+
+  async function handleExportarBackup() {
+    try {
+      await exportarBackup(Constants.expoConfig?.version ?? '?');
+    } catch (e) {
+      Alert.alert(
+        'Não deu pra exportar',
+        e instanceof Error ? e.message : 'Tente de novo.',
+      );
+    }
+  }
+
+  async function handleImportarBackup() {
+    const leitura = await lerArquivoDeBackup();
+    if (leitura.status === 'erro') {
+      Alert.alert('Backup inválido', leitura.erro);
+    } else if (leitura.status === 'ok') {
+      setBackupPendente(leitura.backup);
+    }
+  }
+
+  function confirmarImportarBackup() {
+    if (!backupPendente) return;
+    try {
+      restaurarBackup(backupPendente);
+      atualizarTudo();
+      Alert.alert('Backup restaurado', 'Seus dados foram substituídos pelos do arquivo.');
+    } catch (e) {
+      Alert.alert(
+        'Não deu pra restaurar',
+        `${e instanceof Error ? e.message : 'Erro desconhecido.'} Seus dados atuais foram mantidos.`,
+      );
+    }
+    setBackupPendente(null);
   }
 
   function confirmarResetFabrica() {
@@ -126,6 +201,60 @@ export default function ConfiguracoesScreen() {
             texto="Apagar um semestre"
             descricao="Matérias, avaliações e aulas dele"
             onPress={() => setModalSemestre(true)}
+          />
+        </View>
+
+        <Text style={styles.secaoTitulo}>Lembretes</Text>
+        <View style={styles.grupo}>
+          <View style={styles.linha}>
+            <View style={styles.linhaIconeContainer}>
+              <Ionicons name="notifications-outline" size={18} color={colors.ink} />
+            </View>
+            <View style={styles.linhaTextos}>
+              <Text style={styles.linhaTexto}>Avisar sobre provas e trabalhos</Text>
+              <Text style={styles.linhaDescricao}>
+                Escolha quando avisar em cada avaliação
+              </Text>
+            </View>
+            <Switch
+              value={lembretesLigados}
+              onValueChange={alternarLembretes}
+              trackColor={{ true: colors.brand }}
+            />
+          </View>
+          {lembretesLigados && (
+            <View style={styles.linha}>
+              <View style={styles.linhaIconeContainer}>
+                <Ionicons name="alarm-outline" size={18} color={colors.ink} />
+              </View>
+              <View style={styles.linhaTextos}>
+                <Text style={styles.linhaTexto}>Horário do aviso</Text>
+                <Text style={styles.linhaDescricao}>
+                  Para os avisos de &quot;X dias antes&quot;
+                </Text>
+              </View>
+              <HoraInput
+                style={styles.inputHora}
+                value={horaAviso}
+                onChangeText={alterarHoraAviso}
+              />
+            </View>
+          )}
+        </View>
+
+        <Text style={styles.secaoTitulo}>Backup</Text>
+        <View style={styles.grupo}>
+          <Linha
+            icone="share-outline"
+            texto="Exportar backup"
+            descricao="Salva tudo num arquivo pra guardar ou enviar"
+            onPress={handleExportarBackup}
+          />
+          <Linha
+            icone="download-outline"
+            texto="Importar backup"
+            descricao="Substitui os dados atuais pelos de um arquivo"
+            onPress={handleImportarBackup}
           />
         </View>
 
@@ -181,6 +310,19 @@ export default function ConfiguracoesScreen() {
         aoCancelar={() => setConfirmExcluirSemestre(null)}
       />
       <ConfirmModal
+        visivel={backupPendente !== null}
+        titulo="Substituir seus dados?"
+        mensagem={
+          backupPendente
+            ? `O arquivo tem ${descreverBackup(backupPendente)}. Tudo que está no app agora será apagado e trocado por isso.`
+            : undefined
+        }
+        textoConfirmar="Substituir"
+        destrutivo
+        aoConfirmar={confirmarImportarBackup}
+        aoCancelar={() => setBackupPendente(null)}
+      />
+      <ConfirmModal
         visivel={confirmTarefasConcluidas}
         titulo="Apagar tarefas concluídas?"
         mensagem={`${tarefasConcluidas} tarefa${tarefasConcluidas === 1 ? '' : 's'} concluída${tarefasConcluidas === 1 ? '' : 's'} ser${tarefasConcluidas === 1 ? 'á' : 'ão'} apagada${tarefasConcluidas === 1 ? '' : 's'}.`}
@@ -191,6 +333,11 @@ export default function ConfiguracoesScreen() {
       />
     </SafeAreaView>
   );
+}
+
+function descreverBackup(backup: Backup): string {
+  const r = resumirBackup(backup);
+  return `${r.materias} matéria(s), ${r.avaliacoes} avaliação(ões), ${r.aulas} aula(s), ${r.compromissos} compromisso(s) e ${r.tarefas} tarefa(s)`;
 }
 
 function Linha({
@@ -331,6 +478,18 @@ const styles = StyleSheet.create({
     fontFamily: font.body,
     fontSize: 12.5,
     color: colors.inkFaint,
+  },
+  inputHora: {
+    width: 72,
+    textAlign: 'center',
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radii.sm,
+    paddingVertical: spacing.xs + 2,
+    fontFamily: font.bodyMedium,
+    fontSize: 15,
+    color: colors.ink,
+    backgroundColor: colors.surface,
   },
   linhaSobre: {
     flexDirection: 'row',
