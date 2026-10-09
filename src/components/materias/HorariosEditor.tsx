@@ -42,6 +42,9 @@ const NOME_DIA: Record<number, string> = {
   6: 'Sábado',
 };
 
+// Segunda primeiro, domingo por último — mesma ordem das listas do app.
+const ORDEM_DIAS = [1, 2, 3, 4, 5, 6, 0];
+
 let contador = 0;
 export function novaChave(): string {
   contador += 1;
@@ -49,14 +52,15 @@ export function novaChave(): string {
 }
 
 type NovoHorario = {
-  diaSemana: number | null;
+  /** Dias marcados pro mesmo horário; cada um vira uma aula separada. */
+  dias: number[];
   horaInicio: string;
   horaFim: string;
   observacoes: string;
 };
 
 const NOVO_VAZIO: NovoHorario = {
-  diaSemana: null,
+  dias: [],
   horaInicio: '',
   horaFim: '',
   observacoes: '',
@@ -83,7 +87,7 @@ export function HorariosEditor({
 }) {
   const [novo, setNovo] = useState<NovoHorario>(() => ({
     ...NOVO_VAZIO,
-    diaSemana: diaInicial ?? null,
+    dias: diaInicial != null ? [diaInicial] : [],
     horaInicio: horaInicial ?? '',
     horaFim: horaInicial && horaValida(horaInicial) ? somarMinutos(horaInicial, 100) : '',
   }));
@@ -117,12 +121,12 @@ export function HorariosEditor({
   }
 
   function adicionar() {
-    if (novo.diaSemana == null) {
-      setErro('Escolha o dia da semana.');
+    if (novo.dias.length === 0) {
+      setErro('Escolha pelo menos um dia da semana.');
       return;
     }
     const erroHorario = validarHorario({
-      diaSemana: novo.diaSemana,
+      diaSemana: novo.dias[0],
       horaInicio: novo.horaInicio,
       horaFim: novo.horaFim,
     });
@@ -131,17 +135,28 @@ export function HorariosEditor({
       return;
     }
     setErro(null);
-    const dados = {
-      diaSemana: novo.diaSemana,
+    const base = {
       horaInicio: novo.horaInicio,
       horaFim: novo.horaFim,
       observacoes: novo.observacoes.trim(),
     };
+    // Um horário por dia marcado: no banco são aulas separadas, mesmo com a mesma hora.
+    const dias = ORDEM_DIAS.filter((d) => novo.dias.includes(d));
     if (editandoChave) {
-      // Mantém a chave e o id do banco: é uma alteração, não um horário novo.
-      aoMudar(horarios.map((h) => (h.chave === editandoChave ? { ...h, ...dados } : h)));
+      // O primeiro dia atualiza o horário editado (mantendo chave e id do banco);
+      // se marcaram outros dias, viram aulas novas.
+      const [primeiro, ...outros] = dias;
+      aoMudar([
+        ...horarios.map((h) =>
+          h.chave === editandoChave ? { ...h, ...base, diaSemana: primeiro } : h,
+        ),
+        ...outros.map((diaSemana) => ({ chave: novaChave(), ...base, diaSemana })),
+      ]);
     } else {
-      aoMudar([...horarios, { chave: novaChave(), ...dados }]);
+      aoMudar([
+        ...horarios,
+        ...dias.map((diaSemana) => ({ chave: novaChave(), ...base, diaSemana })),
+      ]);
     }
     // Volta ao editor vazio, pronto pro próximo horário.
     setEditandoChave(null);
@@ -152,7 +167,7 @@ export function HorariosEditor({
   function editar(horario: HorarioRascunho) {
     setEditandoChave(horario.chave);
     setNovo({
-      diaSemana: horario.diaSemana,
+      dias: [horario.diaSemana],
       horaInicio: horario.horaInicio,
       horaFim: horario.horaFim,
       observacoes: horario.observacoes,
@@ -216,13 +231,25 @@ export function HorariosEditor({
               : 'Novo horário'}
         </Text>
 
+        <Text style={styles.dicaDias}>
+          {novo.dias.length > 1
+            ? `${novo.dias.length} dias: vão virar ${novo.dias.length} aulas separadas, no mesmo horário`
+            : 'Marque mais de um dia pra repetir o mesmo horário'}
+        </Text>
         <View style={styles.chipsDias}>
           {DIAS.map((d) => {
-            const ativo = novo.diaSemana === d.valor;
+            const ativo = novo.dias.includes(d.valor);
             return (
               <Pressable
                 key={d.valor}
-                onPress={() => setNovo((n) => ({ ...n, diaSemana: d.valor }))}
+                onPress={() =>
+                  setNovo((n) => ({
+                    ...n,
+                    dias: n.dias.includes(d.valor)
+                      ? n.dias.filter((x) => x !== d.valor)
+                      : [...n.dias, d.valor],
+                  }))
+                }
                 style={[styles.chipDia, ativo && styles.chipDiaAtivo]}
               >
                 <Text style={[styles.chipDiaTexto, ativo && styles.chipDiaTextoAtivo]}>
@@ -292,7 +319,13 @@ export function HorariosEditor({
       <HoraPicker
         visivel={seletor !== null}
         titulo={seletor === 'fim' ? 'Fim da aula' : 'Início da aula'}
-        subtitulo={novo.diaSemana != null ? NOME_DIA[novo.diaSemana] : undefined}
+        subtitulo={
+          novo.dias.length > 0
+            ? ORDEM_DIAS.filter((d) => novo.dias.includes(d))
+                .map((d) => NOME_DIA[d].slice(0, 3))
+                .join(' e ')
+            : undefined
+        }
         valor={seletor === 'fim' ? novo.horaFim : novo.horaInicio}
         sugestoes={sugestoes}
         aoFechar={() => setSeletor(null)}
@@ -368,6 +401,12 @@ const styles = StyleSheet.create({
     fontFamily: font.bodySemibold,
     fontSize: 13,
     color: colors.brand,
+  },
+  dicaDias: {
+    fontFamily: font.body,
+    fontSize: 12.5,
+    color: colors.inkSoft,
+    marginBottom: -spacing.xs,
   },
   chipsDias: {
     flexDirection: 'row',
