@@ -288,6 +288,7 @@ export function EventoUnicoForm({
                 : null
             }
             aoEscolher={(min) => atualizar('horaFim', somarMinutos(valor.horaInicio, min))}
+            aoPersonalizar={() => abrirSeletorHora('fim')}
           />
         </View>
       )}

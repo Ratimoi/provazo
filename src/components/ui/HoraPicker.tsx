@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { horaValida } from '../../domain/validacao';
 import { colors, font, radii, spacing } from '../../theme/tokens';
 import { BottomSheetModal } from './BottomSheetModal';
+import { HoraInput } from './HoraInput';
 
 const HORAS = Array.from({ length: 24 }, (_, h) => h);
 const MINUTOS = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
@@ -38,15 +39,18 @@ export function HoraPicker({
   aoFechar: () => void;
   aoConfirmar: (hora: string) => void;
 }) {
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const gap = spacing.sm;
   const celula = (width - spacing.lg * 2 - gap * (COLUNAS - 1)) / COLUNAS;
 
   const [hora, setHora] = useState<number | null>(null);
   const [minuto, setMinuto] = useState<number | null>(null);
+  // O que a pessoa digitou no campo livre; vazio enquanto ela usa as grades.
+  const [digitado, setDigitado] = useState('');
 
   useEffect(() => {
     if (!visivel) return;
+    setDigitado('');
     if (horaValida(valor)) {
       setHora(Number(valor.slice(0, 2)));
       setMinuto(Number(valor.slice(3, 5)));
@@ -57,8 +61,18 @@ export function HoraPicker({
   }, [visivel, valor]);
 
   function aplicarSugestao(texto: string) {
+    setDigitado('');
     setHora(Number(texto.slice(0, 2)));
     setMinuto(Number(texto.slice(3, 5)));
+  }
+
+  /** Horário digitado à mão (qualquer minuto, ex.: 08:07): vale assim que ficar completo e válido. */
+  function digitar(texto: string) {
+    setDigitado(texto);
+    if (horaValida(texto)) {
+      setHora(Number(texto.slice(0, 2)));
+      setMinuto(Number(texto.slice(3, 5)));
+    }
   }
 
   const completo = hora != null;
@@ -79,12 +93,20 @@ export function HoraPicker({
         </Text>
       </View>
 
+      <ScrollView
+        style={{ maxHeight: height * 0.62 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
       <Text style={styles.rotulo}>Horas</Text>
       <View style={[styles.grade, { gap }]}>
         {HORAS.map((h) => (
           <Pressable
             key={h}
-            onPress={() => setHora(h)}
+            onPress={() => {
+              setDigitado('');
+              setHora(h);
+            }}
             style={[styles.celula, { width: celula }, hora === h && styles.celulaAtiva]}
           >
             <Text style={[styles.celulaTexto, hora === h && styles.celulaTextoAtivo]}>
@@ -101,7 +123,10 @@ export function HoraPicker({
           return (
             <Pressable
               key={m}
-              onPress={() => setMinuto(m)}
+              onPress={() => {
+                setDigitado('');
+                setMinuto(m);
+              }}
               style={[styles.celula, { width: celula }, ativo && styles.celulaAtiva]}
             >
               <Text style={[styles.celulaTexto, ativo && styles.celulaTextoAtivo]}>
@@ -111,6 +136,16 @@ export function HoraPicker({
           );
         })}
       </View>
+
+      <Text style={styles.rotulo}>Ou digite o horário</Text>
+      <HoraInput
+        style={styles.campoLivre}
+        value={digitado}
+        onChangeText={digitar}
+        placeholder="Ex.: 08:07"
+        placeholderTextColor={colors.inkSoft}
+        returnKeyType="done"
+      />
 
       {atalhos.length > 0 && (
         <>
@@ -128,6 +163,8 @@ export function HoraPicker({
           </View>
         </>
       )}
+
+      </ScrollView>
 
       <Pressable
         style={[styles.botao, !completo && styles.botaoDesabilitado]}
@@ -205,6 +242,18 @@ const styles = StyleSheet.create({
   },
   celulaTextoAtivo: {
     color: colors.surface,
+  },
+  campoLivre: {
+    minHeight: 48,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.surface,
+    fontFamily: font.display,
+    fontSize: 18,
+    color: colors.ink,
+    fontVariant: ['tabular-nums'],
   },
   atalhos: {
     flexDirection: 'row',

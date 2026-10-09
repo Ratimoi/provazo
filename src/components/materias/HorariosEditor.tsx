@@ -220,6 +220,7 @@ export function HorariosEditor({
             aoEscolher={(min) =>
               setNovo((n) => ({ ...n, horaFim: somarMinutos(n.horaInicio, min) }))
             }
+            aoPersonalizar={() => abrirSeletor('fim')}
           />
         )}
 

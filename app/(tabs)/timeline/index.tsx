@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { EditarAulaModal } from '../../../src/components/aulas/EditarAulaModal';
 import { AgendaLista } from '../../../src/components/timeline/AgendaLista';
 import { AgendaVertical } from '../../../src/components/timeline/AgendaVertical';
 import { FaixaSemana } from '../../../src/components/timeline/FaixaSemana';
@@ -51,6 +52,7 @@ export default function TimelineScreen() {
   const [calendarioAberto, setCalendarioAberto] = useState(false);
   const [recorrenteSelecionado, setRecorrenteSelecionado] = useState<Compromisso | null>(null);
   const [confirmarExclusao, setConfirmarExclusao] = useState(false);
+  const [aulaEditando, setAulaEditando] = useState<Compromisso | null>(null);
   const listaRef = useRef<FlatList<string>>(null);
 
   const dias = useMemo(
@@ -94,6 +96,23 @@ export default function TimelineScreen() {
     }
   }, []);
 
+  /** Segurar um item abre direto a edição: aula no modal próprio, rotina na tela de edição. */
+  const segurarCompromisso = useCallback(
+    (compromisso: Compromisso) => {
+      if (compromisso.origem === 'recorrente' && compromisso.tipo === 'aula') {
+        setAulaEditando(compromisso);
+      } else if (compromisso.origem === 'recorrente') {
+        router.push({
+          pathname: '/timeline/evento/recorrente/[id]',
+          params: { id: String(compromisso.origemId) },
+        });
+      } else {
+        abrirCompromisso(compromisso);
+      }
+    },
+    [abrirCompromisso],
+  );
+
   function selecionar(iso: string) {
     const indice = dias.indexOf(iso);
     const indiceAtual = dias.indexOf(dataIso);
@@ -118,6 +137,11 @@ export default function TimelineScreen() {
 
   function editarRecorrente() {
     if (!recorrenteSelecionado) return;
+    if (recorrenteSelecionado.tipo === 'aula') {
+      setAulaEditando(recorrenteSelecionado);
+      setRecorrenteSelecionado(null);
+      return;
+    }
     router.push({
       pathname: '/timeline/evento/recorrente/[id]',
       params: { id: String(recorrenteSelecionado.origemId) },
@@ -144,10 +168,11 @@ export default function TimelineScreen() {
           compromissos={porDia.get(item) ?? VAZIO}
           ehHoje={item === hoje}
           aoPressionar={abrirCompromisso}
+          aoSegurar={segurarCompromisso}
         />
       </View>
     ),
-    [width, porDia, hoje, abrirCompromisso],
+    [width, porDia, hoje, abrirCompromisso, segurarCompromisso],
   );
 
   const diasAteProxima = proximaAvaliacao
@@ -274,6 +299,7 @@ export default function TimelineScreen() {
             hoje={hoje}
             compromissosPorDia={porDia}
             aoPressionar={abrirCompromisso}
+            aoSegurar={segurarCompromisso}
           />
         )}
       </View>
@@ -295,10 +321,11 @@ export default function TimelineScreen() {
         aoEditar={editarRecorrente}
         aoPular={pularRecorrente}
         aoExcluir={() => setConfirmarExclusao(true)}
-        aoIrParaMaterias={() => {
-          setRecorrenteSelecionado(null);
-          router.navigate('/provas-trabalhos');
-        }}
+      />
+      <EditarAulaModal
+        visivel={aulaEditando !== null}
+        aula={aulaEditando}
+        aoFechar={() => setAulaEditando(null)}
       />
       <ConfirmModal
         visivel={confirmarExclusao}
