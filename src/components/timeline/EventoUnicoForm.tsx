@@ -13,6 +13,8 @@ import {
 import { CORES_TIPO } from '../../domain/cores';
 import type { NovoEventoUnico } from '../../domain/eventosUnicos';
 import type { FrequenciaRecorrencia } from '../../domain/eventosRecorrentes';
+import { listHorariosUsados } from '../../domain/apoioSeletores';
+import { duracaoEmMinutos, somarMinutos } from '../../domain/horarios';
 import {
   dataValida,
   horaFimDepoisDeInicio,
@@ -20,9 +22,18 @@ import {
 } from '../../domain/validacao';
 import { PALETA_MATERIAS } from '../../domain/materias';
 import { colors, font, radii, spacing } from '../../theme/tokens';
-import { DataInput } from '../ui/DataInput';
-import { HoraInput } from '../ui/HoraInput';
+import { CampoToque } from '../ui/CampoToque';
+import { DataPicker } from '../ui/DataPicker';
+import { DURACOES_COMPROMISSO, DuracaoChips } from '../ui/DuracaoChips';
+import { HoraPicker } from '../ui/HoraPicker';
 
+
+const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+
+function formatarDataCampo(iso: string): string {
+  const [ano, mes, dia] = iso.split('-').map(Number);
+  return `${dia} de ${MESES[mes - 1]} de ${ano}`;
+}
 
 export type Repeticao = 'nunca' | FrequenciaRecorrencia;
 
@@ -86,6 +97,13 @@ export function EventoUnicoForm({
   const [erro, setErro] = useState<string | null>(null);
   const [repeticao, setRepeticao] = useState<Repeticao>(repeticaoInicial);
   const [diasSemana, setDiasSemana] = useState<number[]>(diasSemanaIniciais);
+  const [seletor, setSeletor] = useState<'data' | 'inicio' | 'fim' | null>(null);
+  const [sugestoes, setSugestoes] = useState<string[]>([]);
+
+  function abrirSeletorHora(qual: 'inicio' | 'fim') {
+    setSugestoes(listHorariosUsados());
+    setSeletor(qual);
+  }
 
   function atualizar<K extends keyof ValorFormularioEvento>(
     campo: K,
@@ -117,15 +135,15 @@ export function EventoUnicoForm({
         return;
       }
     } else if (!dataValida(valor.data)) {
-      setErro('Data inválida — use o formato AAAA-MM-DD.');
+      setErro('Escolha a data do compromisso.');
       return;
     }
     if (!horaValida(valor.horaInicio)) {
-      setErro('Hora de início inválida — use o formato HH:MM.');
+      setErro('Escolha a hora de início.');
       return;
     }
     if (valor.horaFim && !horaValida(valor.horaFim)) {
-      setErro('Hora de fim inválida — use o formato HH:MM.');
+      setErro('Escolha a hora de fim.');
       return;
     }
     if (valor.horaFim && !horaFimDepoisDeInicio(valor.horaInicio, valor.horaFim)) {
@@ -220,32 +238,47 @@ export function EventoUnicoForm({
       ) : (
         <>
           <Text style={styles.rotulo}>Data</Text>
-          <DataInput
-            style={styles.input}
-            value={valor.data}
-            onChangeText={(v) => atualizar('data', v)}
-          />
+          <View style={styles.linha}>
+            <CampoToque
+              valor={dataValida(valor.data) ? formatarDataCampo(valor.data) : ''}
+              placeholder="Escolher dia"
+              icone="calendar-outline"
+              aoPressionar={() => setSeletor('data')}
+            />
+          </View>
         </>
       )}
 
+      <Text style={styles.rotulo}>Horário</Text>
       <View style={styles.linha}>
-        <View style={styles.metade}>
-          <Text style={styles.rotulo}>Início</Text>
-          <HoraInput
-            style={styles.input}
-            value={valor.horaInicio}
-            onChangeText={(v) => atualizar('horaInicio', v)}
-          />
-        </View>
-        <View style={styles.metade}>
-          <Text style={styles.rotulo}>Fim (opcional)</Text>
-          <HoraInput
-            style={styles.input}
-            value={valor.horaFim}
-            onChangeText={(v) => atualizar('horaFim', v)}
-          />
-        </View>
+        <CampoToque
+          rotulo="Início"
+          valor={valor.horaInicio}
+          placeholder="--:--"
+          grande
+          aoPressionar={() => abrirSeletorHora('inicio')}
+        />
+        <CampoToque
+          rotulo="Fim (opcional)"
+          valor={valor.horaFim}
+          placeholder="--:--"
+          grande
+          aoPressionar={() => abrirSeletorHora('fim')}
+        />
       </View>
+      {horaValida(valor.horaInicio) && (
+        <View style={styles.duracoes}>
+          <DuracaoChips
+            opcoes={DURACOES_COMPROMISSO}
+            minutosAtuais={
+              horaValida(valor.horaFim)
+                ? duracaoEmMinutos(valor.horaInicio, valor.horaFim)
+                : null
+            }
+            aoEscolher={(min) => atualizar('horaFim', somarMinutos(valor.horaInicio, min))}
+          />
+        </View>
+      )}
 
       <Text style={styles.rotulo}>Observações (opcional)</Text>
       <TextInput
@@ -277,6 +310,39 @@ export function EventoUnicoForm({
         <Text style={styles.botaoSalvarTexto}>{rotuloBotao}</Text>
       </Pressable>
     </ScrollView>
+      <DataPicker
+        visivel={seletor === 'data'}
+        titulo="Data do compromisso"
+        valor={valor.data}
+        aoFechar={() => setSeletor(null)}
+        aoConfirmar={(data) => {
+          atualizar('data', data);
+          setSeletor(null);
+        }}
+      />
+      <HoraPicker
+        visivel={seletor === 'inicio' || seletor === 'fim'}
+        titulo={seletor === 'fim' ? 'Fim do compromisso' : 'Início do compromisso'}
+        valor={seletor === 'fim' ? valor.horaFim : valor.horaInicio}
+        sugestoes={sugestoes}
+        aoFechar={() => setSeletor(null)}
+        aoConfirmar={(hora) => {
+          if (seletor === 'inicio') {
+            const duracao =
+              horaValida(valor.horaInicio) && horaValida(valor.horaFim)
+                ? duracaoEmMinutos(valor.horaInicio, valor.horaFim)
+                : 0;
+            setValor((atual) => ({
+              ...atual,
+              horaInicio: hora,
+              horaFim: duracao > 0 ? somarMinutos(hora, duracao) : atual.horaFim,
+            }));
+          } else {
+            atualizar('horaFim', hora);
+          }
+          setSeletor(null);
+        }}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -317,6 +383,9 @@ const styles = StyleSheet.create({
   linha: {
     flexDirection: 'row',
     gap: spacing.md,
+  },
+  duracoes: {
+    marginTop: spacing.sm,
   },
   metade: {
     flex: 1,

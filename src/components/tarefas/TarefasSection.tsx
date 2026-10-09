@@ -11,12 +11,15 @@ export function TarefasSection({
   aoAlternar,
   aoExcluir,
   aoEditar,
+  aoLimparConcluidas,
 }: {
   tarefas: Tarefa[];
   aoCriar: (titulo: string) => void;
   aoAlternar: (id: number, concluida: boolean) => void;
   aoExcluir: (id: number) => void;
   aoEditar: (tarefa: Tarefa) => void;
+  /** Se informado, mostra o atalho "Limpar concluídas" no grupo das concluídas. */
+  aoLimparConcluidas?: () => void;
 }) {
   const [novoTitulo, setNovoTitulo] = useState('');
 
@@ -32,8 +35,6 @@ export function TarefasSection({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.secaoTitulo}>Tarefas</Text>
-
       <View style={styles.linhaInput}>
         <TextInput
           style={styles.input}
@@ -60,6 +61,7 @@ export function TarefasSection({
         <>
           {pendentes.length > 0 && (
             <View style={styles.lista}>
+              <Text style={styles.secaoTitulo}>A fazer · {pendentes.length}</Text>
               {pendentes.map((tarefa) => (
                 <ItemTarefa
                   key={tarefa.id}
@@ -74,9 +76,16 @@ export function TarefasSection({
 
           {concluidas.length > 0 && (
             <>
-              <Text style={styles.concluidasLabel}>
-                Concluídas · {concluidas.length}
-              </Text>
+              <View style={styles.concluidasCabecalho}>
+                <Text style={styles.concluidasLabel}>
+                  Concluídas · {concluidas.length}
+                </Text>
+                {aoLimparConcluidas && (
+                  <Pressable onPress={aoLimparConcluidas} hitSlop={8}>
+                    <Text style={styles.limpar}>Limpar concluídas</Text>
+                  </Pressable>
+                )}
+              </View>
               <View style={styles.lista}>
                 {concluidas.map((tarefa) => (
                   <ItemTarefa
@@ -185,13 +194,23 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.inkFaint,
   },
+  concluidasCabecalho: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: spacing.md,
+  },
+  limpar: {
+    fontFamily: font.bodySemibold,
+    fontSize: 13,
+    color: colors.brand,
+  },
   concluidasLabel: {
     fontFamily: font.bodySemibold,
     fontSize: 11,
     color: colors.inkFaint,
     textTransform: 'uppercase',
     letterSpacing: 0.4,
-    marginTop: spacing.xs,
   },
   lista: {
     gap: spacing.xs,
