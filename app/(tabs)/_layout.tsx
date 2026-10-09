@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { BotaoAba } from '../../src/components/ui/BotaoAba';
 import { colors, font } from '../../src/theme/tokens';
 
 export default function TabsLayout() {
@@ -11,6 +12,8 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
+        // Ripple recortado no botão (o padrão vaza e vira um círculo grande sob a barra).
+        tabBarButton: (props) => <BotaoAba {...props} />,
         tabBarActiveTintColor: colors.brand,
         tabBarInactiveTintColor: colors.inkFaint,
         tabBarLabelStyle: { fontFamily: font.bodyMedium, fontSize: 11 },
