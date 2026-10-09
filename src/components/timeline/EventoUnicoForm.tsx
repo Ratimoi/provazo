@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -21,8 +22,16 @@ import {
   horaValida,
 } from '../../domain/validacao';
 import { PALETA_MATERIAS } from '../../domain/materias';
+import {
+  aplicarPreset,
+  descreverRotina,
+  type PresetRotina,
+  PRESETS_ROTINA,
+  presetDe,
+} from '../../domain/rotinas';
 import { colors, font, radii, spacing } from '../../theme/tokens';
 import { CampoToque } from '../ui/CampoToque';
+import { SegmentedControl } from '../ui/SegmentedControl';
 import { DataPicker } from '../ui/DataPicker';
 import { DURACOES_COMPROMISSO, DuracaoChips } from '../ui/DuracaoChips';
 import { HoraPicker } from '../ui/HoraPicker';
@@ -36,13 +45,6 @@ function formatarDataCampo(iso: string): string {
 }
 
 export type Repeticao = 'nunca' | FrequenciaRecorrencia;
-
-const OPCOES_REPETICAO: { valor: Repeticao; rotulo: string }[] = [
-  { valor: 'nunca', rotulo: 'Nunca' },
-  { valor: 'semanal', rotulo: 'Toda semana' },
-  { valor: 'mensal', rotulo: 'Todo mês' },
-  { valor: 'anual', rotulo: 'Todo ano' },
-];
 
 const DIAS = [
   { valor: 1, rotulo: 'Seg' },
@@ -95,7 +97,14 @@ export function EventoUnicoForm({
     ...valorInicial,
   });
   const [erro, setErro] = useState<string | null>(null);
-  const [repeticao, setRepeticao] = useState<Repeticao>(repeticaoInicial);
+  // Compromisso que já é recorrente não volta a ser avulso por aqui: sem o "Uma vez".
+  const jaEhRotina = repeticaoInicial !== 'nunca';
+  const [tipoRepeticao, setTipoRepeticao] = useState<'uma-vez' | 'rotina'>(
+    jaEhRotina ? 'rotina' : 'uma-vez',
+  );
+  const [preset, setPreset] = useState<PresetRotina>(
+    jaEhRotina ? presetDe(repeticaoInicial, diasSemanaIniciais) : 'dias-uteis',
+  );
   const [diasSemana, setDiasSemana] = useState<number[]>(diasSemanaIniciais);
   const [seletor, setSeletor] = useState<'data' | 'inicio' | 'fim' | null>(null);
   const [sugestoes, setSugestoes] = useState<string[]>([]);
@@ -112,12 +121,6 @@ export function EventoUnicoForm({
     setValor((atual) => ({ ...atual, [campo]: novoValor }));
   }
 
-  // Um compromisso que já é recorrente não volta a ser avulso por aqui.
-  const opcoesRepeticao =
-    repeticaoInicial === 'nunca'
-      ? OPCOES_REPETICAO
-      : OPCOES_REPETICAO.filter((o) => o.valor !== 'nunca');
-
   function alternarDia(dia: number) {
     setDiasSemana((atual) =>
       atual.includes(dia) ? atual.filter((d) => d !== dia) : [...atual, dia],
@@ -129,13 +132,16 @@ export function EventoUnicoForm({
       setErro('Dê um título pra esse compromisso.');
       return;
     }
-    if (repeticao === 'semanal') {
-      if (diasSemana.length === 0) {
-        setErro('Escolha pelo menos um dia da semana.');
-        return;
-      }
-    } else if (!dataValida(valor.data)) {
-      setErro('Escolha a data do compromisso.');
+    if (tipoRepeticao === 'rotina' && preset === 'dias' && diasSemana.length === 0) {
+      setErro('Escolha pelo menos um dia da semana.');
+      return;
+    }
+    if (!dataValida(valor.data)) {
+      setErro(
+        tipoRepeticao === 'rotina'
+          ? 'Escolha quando a rotina começa.'
+          : 'Escolha a data do compromisso.',
+      );
       return;
     }
     if (!horaValida(valor.horaInicio)) {
@@ -151,6 +157,11 @@ export function EventoUnicoForm({
       return;
     }
     setErro(null);
+    const { frequencia, diasSemana: diasFinais } =
+      tipoRepeticao === 'rotina'
+        ? aplicarPreset(preset, diasSemana)
+        : { frequencia: null, diasSemana: [] as number[] };
+    const repeticao: Repeticao = frequencia ?? 'nunca';
     aoSalvar(
       {
         titulo: valor.titulo.trim(),
@@ -161,7 +172,7 @@ export function EventoUnicoForm({
         observacoes: valor.observacoes.trim() || null,
       },
       repeticao,
-      diasSemana,
+      diasFinais,
     );
   }
 
@@ -183,71 +194,72 @@ export function EventoUnicoForm({
         autoFocus
       />
 
-      {permiteRepetir && (
+      {permiteRepetir && !jaEhRotina && (
+        <View style={styles.alternancia}>
+          <SegmentedControl
+            valor={tipoRepeticao}
+            aoMudar={setTipoRepeticao}
+            opcoes={[
+              { valor: 'uma-vez', rotulo: 'Uma vez' },
+              { valor: 'rotina', rotulo: 'Rotina' },
+            ]}
+          />
+        </View>
+      )}
+
+      {tipoRepeticao === 'rotina' && (
         <>
           <Text style={styles.rotulo}>Repetir</Text>
           <View style={styles.chips}>
-            {opcoesRepeticao.map((opcao) => {
-              const selecionada = opcao.valor === repeticao;
+            {PRESETS_ROTINA.map((opcao) => {
+              const selecionada = opcao.valor === preset;
               return (
                 <Pressable
                   key={opcao.valor}
-                  onPress={() => setRepeticao(opcao.valor)}
+                  onPress={() => setPreset(opcao.valor)}
                   style={[styles.chip, selecionada && styles.chipAtivoNeutro]}
                 >
-                  <Text
-                    style={[
-                      styles.chipTexto,
-                      selecionada && styles.chipTextoAtivo,
-                    ]}
-                  >
+                  <Text style={[styles.chipTexto, selecionada && styles.chipTextoAtivo]}>
                     {opcao.rotulo}
                   </Text>
                 </Pressable>
               );
             })}
           </View>
+
+          {preset === 'dias' && (
+            <>
+              <Text style={styles.rotulo}>Dias da semana</Text>
+              <View style={styles.chips}>
+                {DIAS.map((d) => {
+                  const selecionado = diasSemana.includes(d.valor);
+                  return (
+                    <Pressable
+                      key={d.valor}
+                      onPress={() => alternarDia(d.valor)}
+                      style={[styles.chip, selecionado && styles.chipAtivoNeutro]}
+                    >
+                      <Text style={[styles.chipTexto, selecionado && styles.chipTextoAtivo]}>
+                        {d.rotulo}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </>
+          )}
         </>
       )}
 
-      {repeticao === 'semanal' ? (
-        <>
-          <Text style={styles.rotulo}>Dias da semana</Text>
-          <View style={styles.chips}>
-            {DIAS.map((d) => {
-              const selecionado = diasSemana.includes(d.valor);
-              return (
-                <Pressable
-                  key={d.valor}
-                  onPress={() => alternarDia(d.valor)}
-                  style={[styles.chip, selecionado && styles.chipAtivoNeutro]}
-                >
-                  <Text
-                    style={[
-                      styles.chipTexto,
-                      selecionado && styles.chipTextoAtivo,
-                    ]}
-                  >
-                    {d.rotulo}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </>
-      ) : (
-        <>
-          <Text style={styles.rotulo}>Data</Text>
-          <View style={styles.linha}>
-            <CampoToque
-              valor={dataValida(valor.data) ? formatarDataCampo(valor.data) : ''}
-              placeholder="Escolher dia"
-              icone="calendar-outline"
-              aoPressionar={() => setSeletor('data')}
-            />
-          </View>
-        </>
-      )}
+      <Text style={styles.rotulo}>{tipoRepeticao === 'rotina' ? 'Começa em' : 'Data'}</Text>
+      <View style={styles.linha}>
+        <CampoToque
+          valor={dataValida(valor.data) ? formatarDataCampo(valor.data) : ''}
+          placeholder="Escolher dia"
+          icone="calendar-outline"
+          aoPressionar={() => setSeletor('data')}
+        />
+      </View>
 
       <Text style={styles.rotulo}>Horário</Text>
       <View style={styles.linha}>
@@ -303,6 +315,21 @@ export function EventoUnicoForm({
           />
         ))}
       </View>
+
+      {tipoRepeticao === 'rotina' && (
+        <View style={styles.resumo}>
+          <Ionicons name="repeat" size={16} color={colors.brand} />
+          <Text style={styles.resumoTexto}>
+            {descreverRotina({
+              preset,
+              diasSemana,
+              dataBase: dataValida(valor.data) ? valor.data : '2000-01-01',
+              horaInicio: valor.horaInicio,
+              horaFim: valor.horaFim,
+            })}
+          </Text>
+        </View>
+      )}
 
       {erro && <Text style={styles.erro}>{erro}</Text>}
 
@@ -383,6 +410,24 @@ const styles = StyleSheet.create({
   linha: {
     flexDirection: 'row',
     gap: spacing.md,
+  },
+  alternancia: {
+    marginTop: spacing.md,
+  },
+  resumo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.lg,
+    padding: spacing.md,
+    borderRadius: radii.md,
+    backgroundColor: colors.brandSoft,
+  },
+  resumoTexto: {
+    flex: 1,
+    fontFamily: font.bodySemibold,
+    fontSize: 13.5,
+    color: colors.brand,
   },
   duracoes: {
     marginTop: spacing.sm,

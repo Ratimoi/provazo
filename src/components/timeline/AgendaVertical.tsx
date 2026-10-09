@@ -1,118 +1,140 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import {
-  ALTURA_TOTAL,
   atribuirColunas,
+  faixaDeHoras,
   intervaloDoCompromisso,
+  lacunasLivres,
   minutosAgora,
-  minutosParaPixels,
   PX_POR_HORA,
+  rotuloDuracao,
 } from '../../domain/agenda';
 import type { Compromisso } from '../../domain/timeline';
 import { colors, font, spacing } from '../../theme/tokens';
 import { AgendaBloco } from './AgendaBloco';
 
-const GUTTER_LARGURA = 52;
+const GUTTER_LARGURA = 48;
 const GAP_ENTRE_COLUNAS_PCT = 1.5;
 
 function rotuloHora(h: number): string {
-  return `${String(h).padStart(2, '0')}:00`;
+  return `${String(h % 24).padStart(2, '0')}:00`;
 }
 
-export function AgendaVertical({
+function paraPixels(minutos: number, inicioHora: number): number {
+  return ((minutos - inicioHora * 60) / 60) * PX_POR_HORA;
+}
+
+/** Linha vermelha do horário atual, com o próprio relógio: só ela re-renderiza a cada minuto. */
+function LinhaAgora({ inicioHora }: { inicioHora: number }) {
+  const [minuto, setMinuto] = useState(() => minutosAgora());
+  useEffect(() => {
+    const intervalo = setInterval(() => setMinuto(minutosAgora()), 60000);
+    return () => clearInterval(intervalo);
+  }, []);
+  const top = paraPixels(minuto, inicioHora);
+  const hh = String(Math.floor(minuto / 60)).padStart(2, '0');
+  const mm = String(minuto % 60).padStart(2, '0');
+  return (
+    <>
+      <View style={[styles.linhaAgora, { top }]} />
+      <View style={[styles.pilulaAgora, { top: top - 9 }]}>
+        <Text style={styles.pilulaAgoraTexto}>
+          {hh}:{mm}
+        </Text>
+      </View>
+    </>
+  );
+}
+
+function AgendaVerticalBase({
   compromissos,
   ehHoje,
-  onPressCompromisso,
+  aoPressionar,
 }: {
   compromissos: Compromisso[];
   ehHoje: boolean;
-  onPressCompromisso: (compromisso: Compromisso) => void;
+  aoPressionar: (compromisso: Compromisso) => void;
 }) {
   const scrollRef = useRef<ScrollView>(null);
-  const [minutoAtual, setMinutoAtual] = useState(() => minutosAgora());
 
+  const { inicioHora, fimHora } = useMemo(() => faixaDeHoras(compromissos), [compromissos]);
+  const altura = (fimHora - inicioHora) * PX_POR_HORA;
+
+  const posicoes = useMemo(
+    () =>
+      atribuirColunas(
+        compromissos.map((c) => ({ id: c.id, ...intervaloDoCompromisso(c) })),
+      ),
+    [compromissos],
+  );
+  const lacunas = useMemo(() => lacunasLivres(compromissos), [compromissos]);
+
+  // Rola até "agora" (hoje) ou até o primeiro compromisso — só ao montar a página,
+  // pra não puxar a rolagem quando um dado novo chega.
   useEffect(() => {
-    if (!ehHoje) return;
-    const intervalo = setInterval(() => setMinutoAtual(minutosAgora()), 60000);
-    return () => clearInterval(intervalo);
-  }, [ehHoje]);
-
-  const posicoes = useMemo(() => {
-    const intervalos = compromissos.map((c) => ({
-      id: c.id,
-      ...intervaloDoCompromisso(c),
-    }));
-    return atribuirColunas(intervalos);
-  }, [compromissos]);
-
-  useEffect(() => {
-    const primeiroCompromisso = compromissos[0]
-      ? intervaloDoCompromisso(compromissos[0]).inicioMin
-      : 8 * 60;
-    const alvoMin = ehHoje ? minutosAgora() : primeiroCompromisso;
-    const y = Math.max(0, minutosParaPixels(alvoMin) - 140);
+    const alvoMin = ehHoje
+      ? minutosAgora()
+      : compromissos[0]
+        ? intervaloDoCompromisso(compromissos[0]).inicioMin
+        : 8 * 60;
+    const y = Math.max(0, paraPixels(alvoMin, inicioHora) - 120);
     scrollRef.current?.scrollTo({ y, animated: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [compromissos.length, ehHoje]);
+  }, []);
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={styles.raiz}>
       {compromissos.length === 0 && (
-        <Text style={styles.avisoVazio}>Nada marcado pra esse dia.</Text>
+        <Text style={styles.vazio}>Nada marcado pra esse dia.</Text>
       )}
       <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false}>
-        <View style={styles.canvas}>
-          <View style={styles.colunaHoras}>
-            {Array.from({ length: 24 }, (_, h) => (
-              <Text
-                key={h}
-                style={[
-                  styles.rotuloHora,
-                  { top: Math.max(0, h * PX_POR_HORA - 7) },
-                ]}
-              >
-                {rotuloHora(h)}
-              </Text>
-            ))}
-          </View>
+        <View style={[styles.canvas, { height: altura + 24 }]}>
           <View style={styles.corpo}>
-            {Array.from({ length: 24 }, (_, h) => (
-              <View
-                key={h}
-                style={[styles.linhaGrade, { top: h * PX_POR_HORA }]}
-              />
-            ))}
-            {ehHoje && (
-              <View
-                style={[
-                  styles.linhaAgora,
-                  { top: minutosParaPixels(minutoAtual) },
-                ]}
-              />
-            )}
-            {compromissos.map((compromisso) => {
-              const { inicioMin, fimMin } = intervaloDoCompromisso(compromisso);
-              const pos = posicoes.get(compromisso.id) ?? {
-                coluna: 0,
-                totalColunas: 1,
-              };
-              const larguraPct =
-                100 / pos.totalColunas -
-                (pos.totalColunas > 1 ? GAP_ENTRE_COLUNAS_PCT : 0);
-              const leftPct = (100 / pos.totalColunas) * pos.coluna;
+            {Array.from({ length: fimHora - inicioHora + 1 }, (_, i) => {
+              const hora = inicioHora + i;
               return (
-                <AgendaBloco
-                  key={compromisso.id}
-                  compromisso={compromisso}
-                  top={minutosParaPixels(inicioMin)}
-                  altura={minutosParaPixels(fimMin - inicioMin)}
-                  leftPct={leftPct}
-                  larguraPct={larguraPct}
-                  onPress={() => onPressCompromisso(compromisso)}
-                />
+                <View key={hora} style={[styles.faixaHora, { top: i * PX_POR_HORA }]}>
+                  <Text style={styles.rotuloHora}>{rotuloHora(hora)}</Text>
+                  <View style={styles.linhaGrade} />
+                </View>
               );
             })}
+
+            <View style={styles.areaBlocos}>
+              {lacunas.map((l) => (
+                <Text
+                  key={l.inicioMin}
+                  style={[
+                    styles.lacuna,
+                    { top: paraPixels(l.inicioMin, inicioHora) + 6 },
+                  ]}
+                >
+                  Livre por {rotuloDuracao(l.fimMin - l.inicioMin)}
+                </Text>
+              ))}
+
+              {compromissos.map((compromisso) => {
+                const { inicioMin, fimMin } = intervaloDoCompromisso(compromisso);
+                const pos = posicoes.get(compromisso.id) ?? { coluna: 0, totalColunas: 1 };
+                const larguraPct =
+                  100 / pos.totalColunas -
+                  (pos.totalColunas > 1 ? GAP_ENTRE_COLUNAS_PCT : 0);
+                return (
+                  <AgendaBloco
+                    key={compromisso.id}
+                    compromisso={compromisso}
+                    top={paraPixels(inicioMin, inicioHora) + 1}
+                    altura={((fimMin - inicioMin) / 60) * PX_POR_HORA - 2}
+                    leftPct={(100 / pos.totalColunas) * pos.coluna}
+                    larguraPct={larguraPct}
+                    onPress={aoPressionar}
+                  />
+                );
+              })}
+
+              {ehHoje && <LinhaAgora inicioHora={inicioHora} />}
+            </View>
           </View>
         </View>
       </ScrollView>
@@ -120,47 +142,81 @@ export function AgendaVertical({
   );
 }
 
+export const AgendaVertical = memo(AgendaVerticalBase);
+
 const styles = StyleSheet.create({
-  avisoVazio: {
+  raiz: {
+    flex: 1,
+  },
+  vazio: {
     fontFamily: font.body,
     fontSize: 13,
-    color: colors.inkFaint,
+    color: colors.inkSoft,
     textAlign: 'center',
     paddingVertical: spacing.sm,
   },
   canvas: {
-    flexDirection: 'row',
-    height: ALTURA_TOTAL,
     paddingHorizontal: spacing.lg,
-    paddingBottom: 40,
-  },
-  colunaHoras: {
-    width: GUTTER_LARGURA,
-  },
-  rotuloHora: {
-    position: 'absolute',
-    fontFamily: font.bodyMedium,
-    fontSize: 11,
-    color: colors.inkFaint,
-    fontVariant: ['tabular-nums'],
   },
   corpo: {
     flex: 1,
     position: 'relative',
   },
-  linhaGrade: {
+  faixaHora: {
     position: 'absolute',
     left: 0,
     right: 0,
-    height: 1,
-    backgroundColor: colors.line,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  rotuloHora: {
+    width: GUTTER_LARGURA,
+    marginTop: -14,
+    fontFamily: font.bodyMedium,
+    fontSize: 11,
+    color: colors.inkSoft,
+    fontVariant: ['tabular-nums'],
+  },
+  linhaGrade: {
+    flex: 1,
+    borderTopWidth: 1,
+    borderTopColor: colors.lineSoft,
+  },
+  areaBlocos: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: GUTTER_LARGURA + 4,
+    right: 0,
+  },
+  lacuna: {
+    position: 'absolute',
+    left: 4,
+    fontFamily: font.body,
+    fontSize: 12,
+    color: colors.inkSoft,
   },
   linhaAgora: {
     position: 'absolute',
-    left: 0,
+    left: -6,
     right: 0,
     height: 2,
     backgroundColor: colors.danger,
     zIndex: 10,
+  },
+  pilulaAgora: {
+    position: 'absolute',
+    left: -GUTTER_LARGURA - 4,
+    zIndex: 11,
+    backgroundColor: colors.danger,
+    borderRadius: 6,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+  },
+  pilulaAgoraTexto: {
+    fontFamily: font.bodySemibold,
+    fontSize: 10.5,
+    color: colors.surface,
+    fontVariant: ['tabular-nums'],
   },
 });

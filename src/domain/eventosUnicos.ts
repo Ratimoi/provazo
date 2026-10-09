@@ -1,4 +1,4 @@
-import { asc, eq } from 'drizzle-orm';
+import { and, asc, eq, gte, lte } from 'drizzle-orm';
 
 import { db } from '../db/client';
 import { eventoUnico } from '../db/schema';
@@ -12,6 +12,18 @@ export function listEventosUnicosPorData(data: string): EventoUnico[] {
     .from(eventoUnico)
     .where(eq(eventoUnico.data, data))
     .orderBy(asc(eventoUnico.horaInicio))
+    .all();
+}
+
+export function listEventosUnicosPorPeriodo(
+  inicio: string,
+  fim: string,
+): EventoUnico[] {
+  return db
+    .select()
+    .from(eventoUnico)
+    .where(and(gte(eventoUnico.data, inicio), lte(eventoUnico.data, fim)))
+    .orderBy(asc(eventoUnico.data), asc(eventoUnico.horaInicio))
     .all();
 }
 

@@ -88,3 +88,50 @@ export function minutosAgora(): number {
   const agora = new Date();
   return agora.getHours() * 60 + agora.getMinutes();
 }
+
+/** Faixa de horas exibida na timeline: 07–23 por padrão, estendida se houver evento fora dela. */
+export function faixaDeHoras(compromissos: Compromisso[]): {
+  inicioHora: number;
+  fimHora: number;
+} {
+  let inicioHora = 7;
+  let fimHora = 23;
+  for (const c of compromissos) {
+    const { inicioMin, fimMin } = intervaloDoCompromisso(c);
+    inicioHora = Math.min(inicioHora, Math.floor(inicioMin / 60));
+    fimHora = Math.max(fimHora, Math.min(24, Math.ceil(fimMin / 60)));
+  }
+  return { inicioHora: Math.max(0, inicioHora), fimHora };
+}
+
+export type Lacuna = { inicioMin: number; fimMin: number };
+
+/**
+ * Intervalos livres de pelo menos `minimoMin` entre o primeiro e o último
+ * compromisso do dia (não conta antes do primeiro nem depois do último).
+ */
+export function lacunasLivres(
+  compromissos: Compromisso[],
+  minimoMin = 60,
+): Lacuna[] {
+  const intervalos = compromissos
+    .map(intervaloDoCompromisso)
+    .sort((a, b) => a.inicioMin - b.inicioMin);
+  const lacunas: Lacuna[] = [];
+  let ocupadoAte = intervalos[0]?.fimMin ?? 0;
+  for (const intervalo of intervalos.slice(1)) {
+    if (intervalo.inicioMin - ocupadoAte >= minimoMin) {
+      lacunas.push({ inicioMin: ocupadoAte, fimMin: intervalo.inicioMin });
+    }
+    ocupadoAte = Math.max(ocupadoAte, intervalo.fimMin);
+  }
+  return lacunas;
+}
+
+/** "2h", "1h30" ou "45 min". */
+export function rotuloDuracao(minutos: number): string {
+  const h = Math.floor(minutos / 60);
+  const m = minutos % 60;
+  if (h === 0) return `${m} min`;
+  return m === 0 ? `${h}h` : `${h}h${String(m).padStart(2, '0')}`;
+}
