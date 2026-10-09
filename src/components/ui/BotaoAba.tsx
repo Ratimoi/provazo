@@ -12,10 +12,11 @@ type Props = Omit<PressableProps, 'style' | 'children'> & {
 };
 
 /**
- * Botão da barra de abas com o feedback de toque contido no próprio botão. O
- * padrão do Android usa um ripple "sem borda" que vaza do botão e vira um
- * círculo grande correndo por baixo dos ícones; aqui o ripple é recortado na
- * área do botão, com cantos arredondados e a cor da marca.
+ * Botão da barra de abas com feedback de toque discreto. O padrão do Android
+ * usa um ripple "sem borda" que vaza do botão (um círculo grande sob os
+ * ícones), e um ripple recortado é desenhado por cima do conteúdo e tampa o
+ * ícone e o texto. Aqui não há ripple: só um fundo suave, por trás do
+ * conteúdo, enquanto o dedo está apertando.
  */
 export function BotaoAba({
   children,
@@ -35,8 +36,12 @@ export function BotaoAba({
   return (
     <Pressable
       {...resto}
-      android_ripple={{ color: 'rgba(107, 37, 69, 0.14)', borderless: false }}
-      style={[style, { borderRadius: 16, overflow: 'hidden' }]}
+      android_ripple={null}
+      style={({ pressed }) => [
+        style,
+        { borderRadius: 16 },
+        pressed && { backgroundColor: 'rgba(107, 37, 69, 0.07)' },
+      ]}
     >
       {children}
     </Pressable>
