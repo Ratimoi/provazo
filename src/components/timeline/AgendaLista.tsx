@@ -25,11 +25,13 @@ function AgendaListaBase({
   hoje,
   compromissosPorDia,
   aoPressionar,
+  aoSegurar,
 }: {
   inicio: string;
   hoje: string;
   compromissosPorDia: Map<string, Compromisso[]>;
   aoPressionar: (compromisso: Compromisso) => void;
+  aoSegurar: (compromisso: Compromisso) => void;
 }) {
   const dias = useMemo(
     () => datasDoPeriodo(inicio, somarDias(inicio, DIAS_NA_AGENDA - 1)),
@@ -64,7 +66,7 @@ function AgendaListaBase({
           <Text style={styles.subtituloDia}>{section.subtitulo}</Text>
         </View>
       )}
-      renderItem={({ item }) => <LinhaAgenda compromisso={item} aoPressionar={aoPressionar} />}
+      renderItem={({ item }) => <LinhaAgenda compromisso={item} aoPressionar={aoPressionar} aoSegurar={aoSegurar} />}
       ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
       ListEmptyComponent={
         <Text style={styles.vazio}>Nada marcado pelos próximos {DIAS_NA_AGENDA} dias.</Text>
@@ -85,9 +87,11 @@ export const AgendaLista = memo(AgendaListaBase);
 function LinhaAgenda({
   compromisso,
   aoPressionar,
+  aoSegurar,
 }: {
   compromisso: Compromisso;
   aoPressionar: (compromisso: Compromisso) => void;
+  aoSegurar: (compromisso: Compromisso) => void;
 }) {
   const ehAvaliacao = compromisso.origem === 'avaliacao';
   const ehRotina = compromisso.origem === 'recorrente' && compromisso.tipo !== 'aula';
@@ -101,7 +105,12 @@ function LinhaAgenda({
           : null;
 
   return (
-    <Pressable style={styles.linha} onPress={() => aoPressionar(compromisso)}>
+    <Pressable
+      style={styles.linha}
+      onPress={() => aoPressionar(compromisso)}
+      onLongPress={() => aoSegurar(compromisso)}
+      delayLongPress={350}
+    >
       <View style={styles.horas}>
         <Text style={styles.horaInicio}>{compromisso.horaInicio}</Text>
         {compromisso.horaFim && <Text style={styles.horaFim}>{compromisso.horaFim}</Text>}

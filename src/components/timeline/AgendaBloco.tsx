@@ -17,6 +17,7 @@ type Props = {
   leftPct: number;
   larguraPct: number;
   onPress: (compromisso: Compromisso) => void;
+  onLongPress: (compromisso: Compromisso) => void;
 };
 
 /**
@@ -24,7 +25,15 @@ type Props = {
  * translúcido da cor; prova e trabalho são prazos, então viram uma pílula
  * sólida e compacta.
  */
-function AgendaBlocoBase({ compromisso, top, altura, leftPct, larguraPct, onPress }: Props) {
+function AgendaBlocoBase({
+  compromisso,
+  top,
+  altura,
+  leftPct,
+  larguraPct,
+  onPress,
+  onLongPress,
+}: Props) {
   const compacto = altura < 44;
   const mostraObservacao = altura >= 70 && !!compromisso.observacoes;
   const ehAvaliacao = compromisso.origem === 'avaliacao';
@@ -45,6 +54,8 @@ function AgendaBlocoBase({ compromisso, top, altura, leftPct, larguraPct, onPres
   return (
     <Pressable
       onPress={() => onPress(compromisso)}
+      onLongPress={() => onLongPress(compromisso)}
+      delayLongPress={350}
       style={[
         styles.bloco,
         ehAvaliacao ? styles.blocoMarcador : styles.blocoTranslucido,

@@ -24,11 +24,14 @@ export function DuracaoChips({
   opcoes,
   minutosAtuais,
   aoEscolher,
+  aoPersonalizar,
 }: {
   opcoes: OpcaoDuracao[];
   /** Duração atual (fim - início) em minutos, pra destacar a opção correspondente. */
   minutosAtuais: number | null;
   aoEscolher: (minutos: number) => void;
+  /** Mostra o chip "Outro…", que deixa escolher qualquer horário de fim. */
+  aoPersonalizar?: () => void;
 }) {
   return (
     <View style={styles.linha}>
@@ -46,6 +49,29 @@ export function DuracaoChips({
           </Pressable>
         );
       })}
+      {aoPersonalizar && (
+        <Pressable
+          onPress={aoPersonalizar}
+          style={[
+            styles.chip,
+            styles.chipPersonalizado,
+            minutosAtuais != null &&
+              !opcoes.some((o) => o.minutos === minutosAtuais) &&
+              styles.chipAtivo,
+          ]}
+        >
+          <Text
+            style={[
+              styles.chipTexto,
+              minutosAtuais != null &&
+                !opcoes.some((o) => o.minutos === minutosAtuais) &&
+                styles.chipTextoAtivo,
+            ]}
+          >
+            Outro…
+          </Text>
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -65,6 +91,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  chipPersonalizado: {
+    borderStyle: 'dashed',
+    borderColor: colors.brand,
   },
   chipAtivo: {
     backgroundColor: colors.brand,

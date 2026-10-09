@@ -51,10 +51,12 @@ function AgendaVerticalBase({
   compromissos,
   ehHoje,
   aoPressionar,
+  aoSegurar,
 }: {
   compromissos: Compromisso[];
   ehHoje: boolean;
   aoPressionar: (compromisso: Compromisso) => void;
+  aoSegurar: (compromisso: Compromisso) => void;
 }) {
   const scrollRef = useRef<ScrollView>(null);
 
@@ -129,6 +131,7 @@ function AgendaVerticalBase({
                     leftPct={(100 / pos.totalColunas) * pos.coluna}
                     larguraPct={larguraPct}
                     onPress={aoPressionar}
+                    onLongPress={aoSegurar}
                   />
                 );
               })}

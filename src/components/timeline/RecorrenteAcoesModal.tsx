@@ -5,8 +5,8 @@ import type { Compromisso } from '../../domain/timeline';
 import { colors, font, radii, spacing } from '../../theme/tokens';
 import { BottomSheetModal } from '../ui/BottomSheetModal';
 
-/** Ações de um compromisso recorrente tocado na Timeline. Aulas pertencem à
- * matéria, então só podem ser puladas (editar/excluir é pela aba de matérias). */
+/** Ações de um compromisso recorrente tocado na Timeline. Aulas podem ser
+ * editadas (e excluídas, dentro da edição) ou ter só uma ocorrência pulada. */
 export function RecorrenteAcoesModal({
   visivel,
   compromisso,
@@ -14,7 +14,6 @@ export function RecorrenteAcoesModal({
   aoEditar,
   aoPular,
   aoExcluir,
-  aoIrParaMaterias,
 }: {
   visivel: boolean;
   compromisso: Compromisso | null;
@@ -22,7 +21,6 @@ export function RecorrenteAcoesModal({
   aoEditar: () => void;
   aoPular: () => void;
   aoExcluir: () => void;
-  aoIrParaMaterias: () => void;
 }) {
   if (!compromisso) return null;
   const ehAula = compromisso.tipo === 'aula';
@@ -36,15 +34,11 @@ export function RecorrenteAcoesModal({
         </Text>
       </View>
 
-      {ehAula ? (
-        <Linha
-          icone="school-outline"
-          texto="Gerenciar aulas na matéria"
-          onPress={aoIrParaMaterias}
-        />
-      ) : (
-        <Linha icone="create-outline" texto="Editar compromisso" onPress={aoEditar} />
-      )}
+      <Linha
+        icone="create-outline"
+        texto={ehAula ? 'Editar aula' : 'Editar compromisso'}
+        onPress={aoEditar}
+      />
       <Linha
         icone="play-skip-forward-outline"
         texto="Pular só esta ocorrência"
