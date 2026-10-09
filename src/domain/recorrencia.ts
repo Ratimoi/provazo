@@ -1,4 +1,4 @@
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, gte, inArray, lte } from 'drizzle-orm';
 
 import { db } from '../db/client';
 import {
@@ -9,24 +9,19 @@ import {
   materia,
   semestre,
 } from '../db/schema';
-import { dataPertenceAoSemestre, ocorreNoDia } from './ocorrencia';
+import {
+  chaveExcecao,
+  expandirRecorrentesNasDatas,
+  type OcorrenciaRecorrente,
+  type RecorrenteCarregado,
+} from './expansao';
+import { datasDoPeriodo } from './periodo';
 
-export type OcorrenciaRecorrente = {
-  id: string;
-  eventoRecorrenteId: number;
-  tipo: 'aula' | 'aniversario' | 'outro';
-  titulo: string;
-  corHex: string;
-  horaInicio: string;
-  horaFim: string | null;
-  observacoes: string | null;
-  materiaId?: number;
-  materiaNome?: string;
-  materiaInstituicao?: string | null;
-};
+export type { OcorrenciaRecorrente } from './expansao';
 
-const selecionarBase = () =>
-  db
+/** Todos os eventos recorrentes, com matéria/semestre e dias da semana, numa leitura só. */
+function carregarRecorrentes(): RecorrenteCarregado[] {
+  const eventos = db
     .select({
       id: eventoRecorrente.id,
       titulo: eventoRecorrente.titulo,
@@ -41,24 +36,16 @@ const selecionarBase = () =>
       materiaNome: materia.nome,
       materiaCorHex: materia.corHex,
       materiaInstituicao: materia.instituicao,
+      materiaSemestreId: materia.semestreId,
       anoValor: ano.valor,
       semestreNumero: semestre.numero,
     })
     .from(eventoRecorrente)
     .leftJoin(materia, eq(eventoRecorrente.materiaId, materia.id))
     .leftJoin(semestre, eq(materia.semestreId, semestre.id))
-    .leftJoin(ano, eq(semestre.anoId, ano.id));
-
-/**
- * Junta os eventos recorrentes (aulas semanais, compromissos semanais,
- * mensais e anuais) que caem num dia específico, já excluindo exceções —
- * seção 5 do plano. Aulas só aparecem dentro do semestre da matéria.
- */
-export function expandirEventosRecorrentesParaDia(
-  dataIso: string,
-): OcorrenciaRecorrente[] {
-  const todos = selecionarBase().all();
-  if (todos.length === 0) return [];
+    .leftJoin(ano, eq(semestre.anoId, ano.id))
+    .all();
+  if (eventos.length === 0) return [];
 
   const dias = db
     .select()
@@ -66,67 +53,51 @@ export function expandirEventosRecorrentesParaDia(
     .where(
       inArray(
         eventoRecorrenteDiaSemana.eventoRecorrenteId,
-        todos.map((t) => t.id),
+        eventos.map((e) => e.id),
       ),
     )
     .all();
   const diasPorEvento = new Map<number, number[]>();
   for (const d of dias) {
-    const lista = diasPorEvento.get(d.eventoRecorrenteId) ?? [];
-    lista.push(d.diaSemana);
-    diasPorEvento.set(d.eventoRecorrenteId, lista);
+    diasPorEvento.set(d.eventoRecorrenteId, [
+      ...(diasPorEvento.get(d.eventoRecorrenteId) ?? []),
+      d.diaSemana,
+    ]);
   }
+  return eventos.map((e) => ({ ...e, diasSemana: diasPorEvento.get(e.id) ?? [] }));
+}
 
-  const candidatos = todos.filter((t) => {
-    const ehAula = t.tipo === 'aula';
-    if (
-      ehAula &&
-      (t.anoValor == null ||
-        t.semestreNumero == null ||
-        !dataPertenceAoSemestre(dataIso, t.anoValor, t.semestreNumero))
-    ) {
-      return false;
-    }
-    return ocorreNoDia(
-      {
-        frequencia: t.frequencia,
-        dataBase: t.dataBase,
-        diasSemana: diasPorEvento.get(t.id) ?? [],
-        ehAula,
-      },
-      dataIso,
-    );
-  });
-  if (candidatos.length === 0) return [];
+/**
+ * Ocorrências dos eventos recorrentes em cada dia de `inicio` a `fim`. Carrega
+ * os eventos e as exceções uma única vez e expande em memória, em vez de
+ * consultar o banco dia a dia.
+ */
+export function expandirRecorrentesNoPeriodo(
+  inicio: string,
+  fim: string,
+): Map<string, OcorrenciaRecorrente[]> {
+  const datas = datasDoPeriodo(inicio, fim);
+  const eventos = carregarRecorrentes();
+  if (eventos.length === 0) {
+    return new Map(datas.map((d) => [d, []]));
+  }
+  const excecoes = new Set(
+    db
+      .select({
+        eventoRecorrenteId: eventoRecorrenteExcecao.eventoRecorrenteId,
+        data: eventoRecorrenteExcecao.data,
+      })
+      .from(eventoRecorrenteExcecao)
+      .where(and(gte(eventoRecorrenteExcecao.data, inicio), lte(eventoRecorrenteExcecao.data, fim)))
+      .all()
+      .map((e) => chaveExcecao(e.eventoRecorrenteId, e.data)),
+  );
+  return expandirRecorrentesNasDatas(eventos, excecoes, datas);
+}
 
-  const excecoes = db
-    .select({ eventoRecorrenteId: eventoRecorrenteExcecao.eventoRecorrenteId })
-    .from(eventoRecorrenteExcecao)
-    .where(
-      and(
-        inArray(
-          eventoRecorrenteExcecao.eventoRecorrenteId,
-          candidatos.map((c) => c.id),
-        ),
-        eq(eventoRecorrenteExcecao.data, dataIso),
-      ),
-    )
-    .all();
-  const idsExcluidos = new Set(excecoes.map((e) => e.eventoRecorrenteId));
-
-  return candidatos
-    .filter((c) => !idsExcluidos.has(c.id))
-    .map((c) => ({
-      id: `recorrente-${c.id}`,
-      eventoRecorrenteId: c.id,
-      tipo: c.tipo,
-      titulo: c.titulo,
-      corHex: (c.tipo === 'aula' ? c.materiaCorHex : c.corHex)!,
-      horaInicio: c.horaInicio,
-      horaFim: c.horaFim,
-      observacoes: c.observacoes,
-      materiaId: c.materiaId ?? undefined,
-      materiaNome: c.materiaNome ?? undefined,
-      materiaInstituicao: c.materiaInstituicao,
-    }));
+/** Ocorrências recorrentes de um único dia. */
+export function expandirEventosRecorrentesParaDia(
+  dataIso: string,
+): OcorrenciaRecorrente[] {
+  return expandirRecorrentesNoPeriodo(dataIso, dataIso).get(dataIso) ?? [];
 }

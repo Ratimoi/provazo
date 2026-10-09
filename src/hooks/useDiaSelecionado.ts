@@ -1,17 +1,16 @@
-import { addDays, format } from 'date-fns';
-import { useMemo, useState } from 'react';
+import { useCallback, useState } from 'react';
+
+import { formatarIso } from '../domain/periodo';
 
 export function useDiaSelecionado() {
-  const [data, setData] = useState(() => new Date());
-
-  const dataIso = useMemo(() => format(data, 'yyyy-MM-dd'), [data]);
+  const [dataIso, setDataIso] = useState(() => formatarIso(new Date()));
+  const hoje = formatarIso(new Date());
 
   return {
-    data,
     dataIso,
-    ehHoje: dataIso === format(new Date(), 'yyyy-MM-dd'),
-    irParaAnterior: () => setData((atual) => addDays(atual, -1)),
-    irParaProximo: () => setData((atual) => addDays(atual, 1)),
-    irParaHoje: () => setData(new Date()),
+    hoje,
+    ehHoje: dataIso === hoje,
+    irParaData: useCallback((iso: string) => setDataIso(iso), []),
+    irParaHoje: useCallback(() => setDataIso(formatarIso(new Date())), []),
   };
 }

@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, isNull, lte, sql } from 'drizzle-orm';
 
 import { db } from '../db/client';
 import { avaliacao, materia } from '../db/schema';
@@ -12,6 +12,7 @@ export type AvaliacaoComMateria = Avaliacao & {
   materiaNome: string;
   materiaCorHex: string;
   materiaInstituicao: string | null;
+  materiaSemestreId: number;
 };
 
 function validarPeso(peso: number) {
@@ -48,6 +49,7 @@ function selecionarComMateria() {
       materiaNome: materia.nome,
       materiaCorHex: materia.corHex,
       materiaInstituicao: materia.instituicao,
+      materiaSemestreId: materia.semestreId,
     })
     .from(avaliacao)
     .innerJoin(materia, eq(avaliacao.materiaId, materia.id));
@@ -68,6 +70,17 @@ export function listAvaliacoesPorData(data: string): AvaliacaoComMateria[] {
   return selecionarComMateria()
     .where(eq(avaliacao.data, data))
     .orderBy(asc(avaliacao.hora))
+    .all();
+}
+
+/** Avaliações de qualquer semestre entre duas datas (inclusive), com matéria anexada. */
+export function listAvaliacoesPorPeriodo(
+  inicio: string,
+  fim: string,
+): AvaliacaoComMateria[] {
+  return selecionarComMateria()
+    .where(and(gte(avaliacao.data, inicio), lte(avaliacao.data, fim)))
+    .orderBy(asc(avaliacao.data), asc(avaliacao.hora))
     .all();
 }
 
