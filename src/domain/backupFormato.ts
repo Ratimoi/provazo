@@ -27,11 +27,12 @@ const ESQUEMAS = {
     titulo: { tipo: 'str' },
     data: { tipo: 'str' },
     hora: { tipo: 'str' },
-    peso: { tipo: 'num' },
+    peso: { tipo: 'num', nulo: true },
     nota: { tipo: 'num', nulo: true },
-    notaMaxima: { tipo: 'num' },
+    notaMaxima: { tipo: 'num', nulo: true },
     diasAntesLembrete: { tipo: 'int' },
     observacoes: { tipo: 'str', nulo: true },
+    eventoRecorrenteId: { tipo: 'int', nulo: true },
     createdAt: { tipo: 'str' },
     updatedAt: { tipo: 'str' },
   },
@@ -87,8 +88,8 @@ export const ORDEM_TABELAS: NomeTabela[] = [
   'ano',
   'semestre',
   'materia',
-  'avaliacao',
   'eventoRecorrente',
+  'avaliacao',
   'eventoRecorrenteDiaSemana',
   'eventoRecorrenteExcecao',
   'eventoUnico',
@@ -112,7 +113,8 @@ function valorCombina(
   valor: unknown,
   campo: { tipo: Campo; nulo?: boolean },
 ): boolean {
-  if (valor === null) return campo.nulo === true;
+  // Coluna ausente vale nulo (backups antigos não tinham eventoRecorrenteId).
+  if (valor === null || valor === undefined) return campo.nulo === true;
   const { tipo } = campo;
   if (Array.isArray(tipo)) return (tipo as readonly unknown[]).includes(valor);
   if (tipo === 'int') return Number.isInteger(valor);
@@ -149,6 +151,7 @@ function validarReferencias(tabelas: Record<NomeTabela, Linha[]>): string | null
     ['semestre', 'anoId', 'ano', false],
     ['materia', 'semestreId', 'semestre', false],
     ['avaliacao', 'materiaId', 'materia', false],
+    ['avaliacao', 'eventoRecorrenteId', 'eventoRecorrente', true],
     ['eventoRecorrente', 'materiaId', 'materia', true],
     ['eventoRecorrenteDiaSemana', 'eventoRecorrenteId', 'eventoRecorrente', false],
     ['eventoRecorrenteExcecao', 'eventoRecorrenteId', 'eventoRecorrente', false],
@@ -157,7 +160,7 @@ function validarReferencias(tabelas: Record<NomeTabela, Linha[]>): string | null
     const ids = idsDe(tabelas[pai]);
     for (const linha of tabelas[filha]) {
       const valor = linha[coluna];
-      if (valor === null && opcional) continue;
+      if ((valor === null || valor === undefined) && opcional) continue;
       if (!ids.has(valor)) {
         return `${filha} aponta para ${pai} #${String(valor)}, que não existe no arquivo.`;
       }

@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AvaliacaoForm } from '../../../src/components/avaliacoes/AvaliacaoForm';
 import { createAvaliacao, NovaAvaliacao } from '../../../src/domain/avaliacoes';
 import { garantirPermissaoDeLembretes } from '../../../src/domain/lembretes';
+import { useAulasPorSemestre } from '../../../src/hooks/useAulas';
 import { useMateriasPorSemestre } from '../../../src/hooks/useMaterias';
 import { colors, font } from '../../../src/theme/tokens';
 
@@ -14,6 +15,7 @@ export default function NovaAvaliacaoScreen() {
   const semestreIdNum = Number(semestreId);
 
   const { data: materias = [] } = useMateriasPorSemestre(semestreIdNum);
+  const { data: aulas = [] } = useAulasPorSemestre(semestreIdNum);
 
   const mutacao = useMutation({
     mutationFn: (dados: NovaAvaliacao) => Promise.resolve(createAvaliacao(dados)),
@@ -37,6 +39,7 @@ export default function NovaAvaliacaoScreen() {
     <SafeAreaView style={{ flex: 1 }} edges={['top']}>
       <AvaliacaoForm
         materias={materias}
+        aulas={aulas}
         rotuloBotao="Criar avaliação"
         aoSalvar={(dados) => mutacao.mutate(dados)}
       />

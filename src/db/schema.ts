@@ -60,11 +60,19 @@ export const avaliacao = sqliteTable(
     data: text('data').notNull(),
     // HH:MM
     hora: text('hora').notNull(),
-    peso: real('peso').notNull(),
+    // Peso, nota e nota máxima são opcionais: nem toda avaliação vale nota.
+    // Sem peso conta como 1 e sem nota máxima como 10 nas médias.
+    peso: real('peso'),
     nota: real('nota'),
-    notaMaxima: real('nota_maxima').notNull().default(10),
+    notaMaxima: real('nota_maxima'),
     diasAntesLembrete: integer('dias_antes_lembrete').notNull().default(1),
     observacoes: text('observacoes'),
+    // Horário de aula (evento_recorrente tipo 'aula') em que a avaliação
+    // acontece; some o vínculo se o horário for excluído.
+    eventoRecorrenteId: integer('evento_recorrente_id').references(
+      () => eventoRecorrente.id,
+      { onDelete: 'set null' },
+    ),
     createdAt: text('created_at')
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
