@@ -13,6 +13,7 @@ import {
   updateAvaliacao,
 } from '../../../src/domain/avaliacoes';
 import { garantirPermissaoDeLembretes } from '../../../src/domain/lembretes';
+import { useAulasPorSemestre } from '../../../src/hooks/useAulas';
 import { useMateriasPorSemestre } from '../../../src/hooks/useMaterias';
 import { colors, font, spacing } from '../../../src/theme/tokens';
 
@@ -27,6 +28,7 @@ export default function DetalheAvaliacaoScreen() {
   const [confirmarExclusao, setConfirmarExclusao] = useState(false);
   const avaliacao = getAvaliacao(avaliacaoId);
   const { data: materias = [] } = useMateriasPorSemestre(semestreIdNum);
+  const { data: aulas = [] } = useAulasPorSemestre(semestreIdNum);
 
   const mutacaoSalvar = useMutation({
     mutationFn: (dados: NovaAvaliacao) =>
@@ -54,6 +56,7 @@ export default function DetalheAvaliacaoScreen() {
     <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
       <AvaliacaoForm
         materias={materias}
+        aulas={aulas}
         rotuloBotao="Salvar alterações"
         valorInicial={{
           materiaId: avaliacao.materiaId,
@@ -61,9 +64,10 @@ export default function DetalheAvaliacaoScreen() {
           titulo: avaliacao.titulo,
           data: avaliacao.data,
           hora: avaliacao.hora,
-          peso: String(avaliacao.peso),
+          eventoRecorrenteId: avaliacao.eventoRecorrenteId,
+          peso: avaliacao.peso != null ? String(avaliacao.peso) : '',
           nota: avaliacao.nota != null ? String(avaliacao.nota) : '',
-          notaMaxima: String(avaliacao.notaMaxima),
+          notaMaxima: avaliacao.notaMaxima != null ? String(avaliacao.notaMaxima) : '',
           diasAntesLembrete: avaliacao.diasAntesLembrete,
           observacoes: avaliacao.observacoes ?? '',
         }}

@@ -16,6 +16,7 @@ import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-na
 
 import { datasComEventos } from '../../domain/apoioSeletores';
 import { dataValida } from '../../domain/validacao';
+import { dataCaiNosDias, proximaDataNosDias } from '../../domain/vinculoAula';
 import { colors, font, radii, spacing } from '../../theme/tokens';
 import { BottomSheetModal } from './BottomSheetModal';
 
@@ -33,6 +34,7 @@ export function DataPicker({
   visivel,
   titulo,
   valor,
+  diasPermitidos,
   aoFechar,
   aoConfirmar,
 }: {
@@ -40,6 +42,8 @@ export function DataPicker({
   titulo: string;
   /** AAAA-MM-DD atual; vazio se ainda não escolhida. */
   valor: string;
+  /** Dias da semana (0 = domingo) escolhíveis; os outros ficam apagados. */
+  diasPermitidos?: number[];
   aoFechar: () => void;
   aoConfirmar: (data: string) => void;
 }) {
@@ -74,17 +78,26 @@ export function DataPicker({
     [mesVisivel],
   );
 
+  const restrito = diasPermitidos != null && diasPermitidos.length > 0;
+
   function escolher(data: Date) {
     setEscolhida(iso(data));
     setMesVisivel(startOfMonth(data));
   }
 
-  const atalhos: { rotulo: string; data: Date }[] = [
-    { rotulo: 'Hoje', data: new Date() },
-    { rotulo: 'Amanhã', data: addDays(new Date(), 1) },
-    { rotulo: 'Próxima semana', data: addDays(new Date(), 7) },
-    { rotulo: 'Fim do mês', data: endOfMonth(new Date()) },
-  ];
+  const atalhos: { rotulo: string; data: Date }[] = restrito
+    ? [
+        {
+          rotulo: 'Próxima aula',
+          data: parseISO(proximaDataNosDias(hoje, diasPermitidos)),
+        },
+      ]
+    : [
+        { rotulo: 'Hoje', data: new Date() },
+        { rotulo: 'Amanhã', data: addDays(new Date(), 1) },
+        { rotulo: 'Próxima semana', data: addDays(new Date(), 7) },
+        { rotulo: 'Fim do mês', data: endOfMonth(new Date()) },
+      ];
 
   const legenda = escolhida
     ? format(parseISO(escolhida), "EEEE, d 'de' MMMM", { locale: ptBR })
@@ -146,11 +159,13 @@ export function DataPicker({
           const foraDoMes = dia.getMonth() !== mesVisivel.getMonth();
           const selecionado = chave === escolhida;
           const ehHoje = chave === hoje;
+          const bloqueado = restrito && !dataCaiNosDias(chave, diasPermitidos);
           return (
             <Pressable
               key={chave}
+              disabled={bloqueado}
               onPress={() => escolher(dia)}
-              style={[styles.dia, { width: celula }]}
+              style={[styles.dia, { width: celula }, bloqueado && styles.diaBloqueado]}
             >
               <View
                 style={[
@@ -184,7 +199,9 @@ export function DataPicker({
       <View style={styles.legenda}>
         <View style={[styles.ponto, styles.pontoVisivel]} />
         <Text style={styles.legendaTexto}>
-          Dias que já têm prova, trabalho ou compromisso
+          {restrito
+            ? 'Só os dias em que a aula acontece'
+            : 'Dias que já têm prova, trabalho ou compromisso'}
         </Text>
       </View>
 
@@ -288,6 +305,9 @@ const styles = StyleSheet.create({
   },
   diaSelecionado: {
     backgroundColor: colors.brand,
+  },
+  diaBloqueado: {
+    opacity: 0.3,
   },
   diaTexto: {
     fontFamily: font.bodyMedium,

@@ -11,10 +11,18 @@ import {
   View,
 } from 'react-native';
 
+import { format } from 'date-fns';
+
 import type { Materia } from '../../domain/materias';
 import type { NovaAvaliacao } from '../../domain/avaliacoes';
+import type { Aula } from '../../domain/eventosRecorrentes';
 import { listHorariosUsados } from '../../domain/apoioSeletores';
 import { dataValida, horaValida, notaValida } from '../../domain/validacao';
+import {
+  dataCaiNosDias,
+  proximaDataNosDias,
+  rotuloDoHorario,
+} from '../../domain/vinculoAula';
 import { colors, font, radii, spacing } from '../../theme/tokens';
 import { CampoToque } from '../ui/CampoToque';
 import { DataPicker } from '../ui/DataPicker';
@@ -34,8 +42,12 @@ export type ValorFormularioAvaliacao = {
   titulo: string;
   data: string;
   hora: string;
+  /** Horário de aula (evento recorrente) em que acontece; null = sem vínculo. */
+  eventoRecorrenteId: number | null;
+  /** Vazio = sem peso (conta como 1 na média). */
   peso: string;
   nota: string;
+  /** Vazio = sem nota máxima (conta como 10 na média). */
   notaMaxima: string;
   /** -1 = sem aviso; 0 = no dia; N = N dias antes. */
   diasAntesLembrete: number;
@@ -57,20 +69,31 @@ const VAZIO: ValorFormularioAvaliacao = {
   titulo: '',
   data: '',
   hora: '',
-  peso: '1',
+  eventoRecorrenteId: null,
+  peso: '',
   nota: '',
-  notaMaxima: '10',
+  notaMaxima: '',
   diasAntesLembrete: 1,
   observacoes: '',
 };
 
+/** Número digitado (aceita vírgula); vazio = null; inválido = NaN. */
+function lerNumero(texto: string): number | null {
+  const limpo = texto.trim();
+  if (limpo.length === 0) return null;
+  return Number(limpo.replace(',', '.'));
+}
+
 export function AvaliacaoForm({
   materias,
+  aulas = [],
   valorInicial,
   rotuloBotao = 'Salvar',
   aoSalvar,
 }: {
   materias: Materia[];
+  /** Horários de aula do semestre; o formulário mostra os da matéria escolhida. */
+  aulas?: Aula[];
   valorInicial?: Partial<ValorFormularioAvaliacao>;
   rotuloBotao?: string;
   aoSalvar: (dados: NovaAvaliacao) => void;
@@ -86,6 +109,40 @@ export function AvaliacaoForm({
   const [sugestoes, setSugestoes] = useState<string[]>([]);
 
   const materiaSelecionada = materias.find((m) => m.id === valor.materiaId);
+  const aulasDaMateria = aulas.filter((a) => a.materiaId === valor.materiaId);
+  const aulaVinculada = aulasDaMateria.find((a) => a.id === valor.eventoRecorrenteId);
+
+  /** Vincula (ou solta) o horário: a hora vira a do início da aula e a data vai pro próximo dia dela. */
+  function escolherAula(aula: Aula | null) {
+    if (!aula) {
+      atualizar('eventoRecorrenteId', null);
+      return;
+    }
+    setValor((atual) => {
+      const base = dataValida(atual.data) ? atual.data : format(new Date(), 'yyyy-MM-dd');
+      return {
+        ...atual,
+        eventoRecorrenteId: aula.id,
+        hora: aula.horaInicio,
+        data: dataCaiNosDias(base, aula.diasSemana)
+          ? base
+          : proximaDataNosDias(base, aula.diasSemana),
+      };
+    });
+  }
+
+  function escolherMateria(id: number) {
+    setValor((atual) => {
+      const aindaVale =
+        atual.eventoRecorrenteId != null &&
+        aulas.some((a) => a.id === atual.eventoRecorrenteId && a.materiaId === id);
+      return {
+        ...atual,
+        materiaId: id,
+        eventoRecorrenteId: aindaVale ? atual.eventoRecorrenteId : null,
+      };
+    });
+  }
 
   function atualizar<K extends keyof ValorFormularioAvaliacao>(
     campo: K,
@@ -111,25 +168,28 @@ export function AvaliacaoForm({
       setErro('Escolha a hora da avaliação.');
       return null;
     }
-    const peso = Number(valor.peso.replace(',', '.'));
-    if (!Number.isFinite(peso) || peso <= 0) {
-      setErro('O peso precisa ser maior que zero.');
+    if (aulaVinculada && !dataCaiNosDias(valor.data, aulaVinculada.diasSemana)) {
+      setErro(
+        `Essa aula é ${rotuloDoHorario(aulaVinculada).split(' ')[0]}: escolha um dia em que ela acontece ou tire o vínculo.`,
+      );
       return null;
     }
-    const notaMaxima = Number(valor.notaMaxima.replace(',', '.'));
-    if (!Number.isFinite(notaMaxima) || notaMaxima <= 0) {
-      setErro('A nota máxima precisa ser maior que zero.');
+    const peso = lerNumero(valor.peso);
+    if (peso != null && (!Number.isFinite(peso) || peso <= 0)) {
+      setErro('O peso precisa ser maior que zero (ou deixe em branco).');
       return null;
     }
-    let nota: number | null = null;
-    if (valor.nota.trim().length > 0) {
-      nota = Number(valor.nota.replace(',', '.'));
-      if (!Number.isFinite(nota)) {
-        setErro('Nota inválida.');
-        return null;
-      }
-      if (!notaValida(nota, notaMaxima)) {
-        setErro(`A nota precisa estar entre 0 e ${notaMaxima}.`);
+    const notaMaxima = lerNumero(valor.notaMaxima);
+    if (notaMaxima != null && (!Number.isFinite(notaMaxima) || notaMaxima <= 0)) {
+      setErro('A nota máxima precisa ser maior que zero (ou deixe em branco).');
+      return null;
+    }
+    const nota = lerNumero(valor.nota);
+    if (nota != null) {
+      // Sem nota máxima informada, a escala padrão é de 0 a 10.
+      const limite = notaMaxima ?? 10;
+      if (!Number.isFinite(nota) || !notaValida(nota, limite)) {
+        setErro(`A nota precisa estar entre 0 e ${limite}.`);
         return null;
       }
     }
@@ -141,6 +201,7 @@ export function AvaliacaoForm({
       titulo: valor.titulo.trim(),
       data: valor.data,
       hora: valor.hora,
+      eventoRecorrenteId: aulaVinculada ? aulaVinculada.id : null,
       peso,
       nota,
       notaMaxima,
@@ -207,6 +268,41 @@ export function AvaliacaoForm({
         })}
       </View>
 
+      {aulasDaMateria.length > 0 && (
+        <>
+          <Text style={styles.rotulo}>Horário de aula (opcional)</Text>
+          <View style={styles.chipsQuebra}>
+            <Pressable
+              onPress={() => escolherAula(null)}
+              style={[styles.chip, !aulaVinculada && styles.chipAtivoNeutro]}
+            >
+              <Text style={[styles.chipTexto, !aulaVinculada && styles.chipTextoAtivo]}>
+                Nenhum
+              </Text>
+            </Pressable>
+            {aulasDaMateria.map((aula) => {
+              const selecionado = aula.id === valor.eventoRecorrenteId;
+              return (
+                <Pressable
+                  key={aula.id}
+                  onPress={() => escolherAula(aula)}
+                  style={[styles.chip, selecionado && styles.chipAtivoNeutro]}
+                >
+                  <Text style={[styles.chipTexto, selecionado && styles.chipTextoAtivo]}>
+                    {rotuloDoHorario(aula)}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          {aulaVinculada && (
+            <Text style={styles.dica}>
+              Acontece durante essa aula: a hora e o dia seguem o horário dela.
+            </Text>
+          )}
+        </>
+      )}
+
       <Text style={styles.rotulo}>Título</Text>
       <TextInput
         style={styles.input}
@@ -239,35 +335,43 @@ export function AvaliacaoForm({
         </View>
       </View>
 
+      <Text style={styles.rotulo}>Nota (opcional)</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Deixe em branco se ainda não saiu"
+        placeholderTextColor={colors.inkFaint}
+        value={valor.nota}
+        onChangeText={(v) => atualizar('nota', v)}
+        keyboardType="decimal-pad"
+      />
+
       <View style={styles.linha}>
         <View style={styles.metade}>
-          <Text style={styles.rotulo}>Peso</Text>
+          <Text style={styles.rotulo}>Peso (opcional)</Text>
           <TextInput
             style={styles.input}
+            placeholder="Sem peso"
+            placeholderTextColor={colors.inkFaint}
             value={valor.peso}
             onChangeText={(v) => atualizar('peso', v)}
             keyboardType="decimal-pad"
           />
         </View>
         <View style={styles.metade}>
-          <Text style={styles.rotulo}>Nota máxima</Text>
+          <Text style={styles.rotulo}>Nota máx. (opcional)</Text>
           <TextInput
             style={styles.input}
+            placeholder="Ex.: 10"
+            placeholderTextColor={colors.inkFaint}
             value={valor.notaMaxima}
             onChangeText={(v) => atualizar('notaMaxima', v)}
             keyboardType="decimal-pad"
           />
         </View>
       </View>
-
-      <Text style={styles.rotulo}>Nota (opcional)</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Deixe em branco se ainda não saiu"
-        value={valor.nota}
-        onChangeText={(v) => atualizar('nota', v)}
-        keyboardType="decimal-pad"
-      />
+      <Text style={styles.dica}>
+        Sem peso conta como 1 e sem nota máxima como 10 na média da matéria.
+      </Text>
 
       <Text style={styles.rotulo}>Avisar</Text>
       <View style={styles.chips}>
@@ -308,6 +412,7 @@ export function AvaliacaoForm({
         visivel={seletor === 'data'}
         titulo={valor.tipo === 'prova' ? 'Data da prova' : 'Data de entrega'}
         valor={valor.data}
+        diasPermitidos={aulaVinculada?.diasSemana}
         aoFechar={() => setSeletor(null)}
         aoConfirmar={(data) => {
           atualizar('data', data);
@@ -331,7 +436,7 @@ export function AvaliacaoForm({
         materias={materias}
         materiaSelecionadaId={valor.materiaId}
         aoFechar={() => setModalMateriaAberto(false)}
-        aoSelecionar={(id) => atualizar('materiaId', id)}
+        aoSelecionar={escolherMateria}
       />
     </>
   );
@@ -411,6 +516,17 @@ const styles = StyleSheet.create({
   chips: {
     flexDirection: 'row',
     gap: spacing.sm,
+  },
+  chipsQuebra: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  dica: {
+    fontFamily: font.body,
+    fontSize: 12.5,
+    color: colors.inkSoft,
+    marginTop: spacing.sm,
   },
   chip: {
     paddingHorizontal: spacing.md,

@@ -52,7 +52,9 @@ export function AvaliacaoCard({
           </Text>
         </View>
         <Text style={styles.info}>
-          {avaliacao.hora} · peso {avaliacao.peso}
+          {avaliacao.hora}
+          {avaliacao.peso != null ? ` · peso ${avaliacao.peso}` : ''}
+          {avaliacao.eventoRecorrenteId != null ? ' · na aula' : ''}
         </Text>
       </View>
 
@@ -65,7 +67,9 @@ export function AvaliacaoCard({
         {avaliacao.nota != null ? (
           <Text style={styles.nota}>
             {avaliacao.nota}
-            <Text style={styles.notaMaxima}>/{avaliacao.notaMaxima}</Text>
+            {avaliacao.notaMaxima != null && (
+              <Text style={styles.notaMaxima}>/{avaliacao.notaMaxima}</Text>
+            )}
           </Text>
         ) : (
           <Text style={[styles.prazo, passou && styles.prazoAtrasado]}>

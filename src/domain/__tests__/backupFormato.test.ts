@@ -85,6 +85,23 @@ describe('validarBackup', () => {
     expect(validarBackup([]).ok).toBe(false);
   });
 
+  it('aceita avaliação sem peso nem nota máxima e vinculada a um horário', () => {
+    const b = backupValido();
+    Object.assign(b.tabelas.avaliacao[0], {
+      peso: null,
+      notaMaxima: null,
+      eventoRecorrenteId: 1,
+    });
+    expect(validarBackup(b).ok).toBe(true);
+  });
+
+  it('rejeita avaliação vinculada a um horário que não existe no arquivo', () => {
+    const b = backupValido();
+    b.tabelas.avaliacao[0].eventoRecorrenteId = 99;
+    const r = validarBackup(b);
+    expect(r.ok).toBe(false);
+  });
+
   it('rejeita backup de uma versão mais nova', () => {
     const r = validarBackup({ ...backupValido(), versao: VERSAO_BACKUP + 1 });
     expect(r.ok).toBe(false);

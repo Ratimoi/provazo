@@ -15,8 +15,8 @@ export type AvaliacaoComMateria = Avaliacao & {
   materiaSemestreId: number;
 };
 
-function validarPeso(peso: number) {
-  if (peso <= 0) {
+function validarPeso(peso: number | null | undefined) {
+  if (peso != null && peso <= 0) {
     throw new Error('O peso precisa ser maior que zero.');
   }
 }
@@ -44,6 +44,7 @@ function selecionarComMateria() {
       notaMaxima: avaliacao.notaMaxima,
       diasAntesLembrete: avaliacao.diasAntesLembrete,
       observacoes: avaliacao.observacoes,
+      eventoRecorrenteId: avaliacao.eventoRecorrenteId,
       createdAt: avaliacao.createdAt,
       updatedAt: avaliacao.updatedAt,
       materiaNome: materia.nome,
@@ -106,7 +107,7 @@ export function updateAvaliacao(
   id: number,
   dados: Partial<NovaAvaliacao>,
 ): Avaliacao {
-  if (dados.peso !== undefined) validarPeso(dados.peso);
+  validarPeso(dados.peso);
   return db
     .update(avaliacao)
     .set({ ...dados, updatedAt: sql`CURRENT_TIMESTAMP` })
